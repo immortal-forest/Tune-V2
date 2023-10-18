@@ -5,3 +5,4 @@
 venv/
 .python-version
 __pycache__/
+logs/
