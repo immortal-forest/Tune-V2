@@ -62,6 +62,43 @@ class MusicCog(commands.Cog):
         elif isinstance(idf, Guild):
             return node.get_player(idf.id)
 
+    @commands.command(name="join", aliases=["connect", 'c', 'j'])
+    async def _join(self, ctx: Context):
+        vc: TPlayer = ctx.guild.voice_client
+
+        try:
+            channel = ctx.author.voice.channel
+        except AttributeError:
+            return await ctx.send(embed=discord.Embed(
+                title="You're not connected to any VC",
+                color=EMBED_COLOR
+            ), delete_after=5)
+
+        if not vc:
+            await channel.connect(cls=TPlayer)
+        else:
+            await vc.move_to(channel)
+        return await ctx.send(embed=discord.Embed(
+            title=f"Joined: *{channel.name}*",
+            color=EMBED_COLOR
+        ))
+
+    @commands.command(name="leave", aliases=['disconnect', 'd', 'l'])
+    async def _leave(self, ctx: Context):
+        vc: TPlayer = ctx.voice_client
+
+        if vc:
+            await ctx.send(embed=discord.Embed(
+                title=f"Disconnected: *{vc.channel.name}*",
+                color=EMBED_COLOR
+            ))
+            await vc.disconnect()
+            await vc.destroy(ctx.guild)
+        else:
+            await ctx.send(embed=discord.Embed(
+                title="You're not connected to any VC",
+                color=EMBED_COLOR
+            ), delete_after=5)
 
 
 async def setup(bot: commands.Bot):
