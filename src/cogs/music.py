@@ -34,7 +34,9 @@ class MusicCog(commands.Cog):
         # check if no members (not bot) in vc
         if not member.bot and after.channel is None:
             if not [m for m in before.channel.members if not m.bot]:
-                pass  # disconnect the bot
+                vc: TPlayer = self.get_player(member.guild)
+                await vc.disconnect()
+                await vc.destroy()
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: wavelink.Node):
