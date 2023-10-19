@@ -17,12 +17,10 @@ class TPlayer(wavelink.Player):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    async def destroy(self, idf: Union[Context, Guild]):
-        if isinstance(idf, Context):
-            guild_id = idf.guild.id
-        elif isinstance(idf, Guild):
-            guild_id = idf.id
-        await self._destroy(guild_id)
+    async def destroy(self):
+        if self.is_connected():
+            await self.disconnect()
+        await self._destroy()
 
 
 class MusicCog(commands.Cog):
