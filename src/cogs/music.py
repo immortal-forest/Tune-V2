@@ -8,7 +8,21 @@ from discord import Member, VoiceState, DMChannel, Guild
 from typing import Union
 from logging import getLogger
 
+
 logger = getLogger("discord")
+EMBED_COLOR = discord.Color.magenta()
+
+
+class TPlayer(wavelink.Player):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    async def destroy(self, idf: Union[Context, Guild]):
+        if isinstance(idf, Context):
+            guild_id = idf.guild.id
+        elif isinstance(idf, Guild):
+            guild_id = idf.id
+        await self._destroy(guild_id)
 
 
 class MusicCog(commands.Cog):
@@ -47,6 +61,7 @@ class MusicCog(commands.Cog):
             return node.get_player(idf.guild.id)
         elif isinstance(idf, Guild):
             return node.get_player(idf.id)
+
 
 
 async def setup(bot: commands.Bot):
