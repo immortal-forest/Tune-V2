@@ -55,7 +55,7 @@ class MusicCog(commands.Cog):
         node = wavelink.Node(uri='http://localhost:2333', password='youshallnotpass')
         await wavelink.NodePool.connect(client=self.bot, nodes=[node])
 
-    def get_player(self, idf: Union[Context, Guild]):
+    def get_player(self, idf: Union[Context, Guild]) -> TPlayer | None:
         node = wavelink.NodePool.get_node()
         if isinstance(idf, Context):
             return node.get_player(idf.guild.id)
