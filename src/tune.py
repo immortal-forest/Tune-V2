@@ -57,4 +57,4 @@ class Tune(commands.Bot):
 
     async def get_prefix(self, content: Message, /):
         # other prefixes
-        return commands.when_mentioned_or("'")(self.bot, content)
+        return commands.when_mentioned_or("'")(self, content)
