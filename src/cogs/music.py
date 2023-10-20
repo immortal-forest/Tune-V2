@@ -1,5 +1,5 @@
 import discord
-import wavelink
+from wavelink import Node, NodePool, Player, Playable, Playlist, GenericTrack
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
@@ -8,12 +8,11 @@ from discord import Member, VoiceState, DMChannel, Guild
 from typing import Union
 from logging import getLogger
 
-
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
 
 
-class TPlayer(wavelink.Player):
+class TPlayer(Player):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -23,9 +22,17 @@ class TPlayer(wavelink.Player):
         await self._destroy()
 
 
-class TTrack(commands.Converter):
+class Query(commands.Converter):
     async def convert(self, ctx, query: str):
-        return query
+        # maybe Track or Playlist
+        tracks = await GenericTrack.search(query)
+        if not tracks:
+            return None
+        if isinstance(tracks, Playlist):
+            track = tracks
+        else:
+            track = tracks[0]
+        return track
 
 
 class MusicCog(commands.Cog):
@@ -44,7 +51,7 @@ class MusicCog(commands.Cog):
                 await vc.destroy()
 
     @commands.Cog.listener()
-    async def on_wavelink_node_ready(self, node: wavelink.Node):
+    async def on_wavelink_node_ready(self, node: Node):
         logger.info(f"Wavelink node {node.id} ready.")
 
     async def cog_check(self, ctx: Context[BotT]) -> bool:
@@ -57,11 +64,11 @@ class MusicCog(commands.Cog):
         await self.start_nodes()
 
     async def start_nodes(self):
-        node = wavelink.Node(uri='http://localhost:2333', password='youshallnotpass')
-        await wavelink.NodePool.connect(client=self.bot, nodes=[node])
+        node = Node(uri='http://localhost:2333', password='youshallnotpass')
+        await NodePool.connect(client=self.bot, nodes=[node])
 
     def get_player(self, idf: Union[Context, Guild]) -> TPlayer | None:
-        node = wavelink.NodePool.get_node()
+        node = NodePool.get_node()
         if isinstance(idf, Context):
             return node.get_player(idf.guild.id)
         elif isinstance(idf, Guild):
@@ -106,8 +113,12 @@ class MusicCog(commands.Cog):
             ), delete_after=5)
 
     @commands.command(name="play")
-    async def _play(self, ctx: Context, *, query: TTrack):
-        return await ctx.send(query)
+    async def _play(self, ctx: Context, *, tracks: Query):
+        track = tracks
+        if track is None:
+            return await ctx.send("No track found.")
+
+        return
 
 
 async def setup(bot: commands.Bot):
