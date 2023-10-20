@@ -1,4 +1,5 @@
 import os
+import asyncio
 from pathlib import Path
 
 import discord
@@ -27,6 +28,7 @@ class Tune(commands.Bot):
         for cog in self._cogs:
             val += 1
             await self.load_extension(f"src.cogs.{cog}")
+            await asyncio.sleep(2)
             clear_print(f"Loading ext: {cog}... {(val / cogs) * 100:.2f}%")
         clear_print("Loaded extensions!")
 
