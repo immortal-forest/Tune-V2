@@ -23,6 +23,11 @@ class TPlayer(wavelink.Player):
         await self._destroy()
 
 
+class TTrack(commands.Converter):
+    async def convert(self, ctx, query: str):
+        return query
+
+
 class MusicCog(commands.Cog):
     __cog_name__ = "Music"
 
@@ -99,6 +104,10 @@ class MusicCog(commands.Cog):
                 title="You're not connected to any VC",
                 color=EMBED_COLOR
             ), delete_after=5)
+
+    @commands.command(name="play")
+    async def _play(self, ctx: Context, *, query: TTrack):
+        return await ctx.send(query)
 
 
 async def setup(bot: commands.Bot):
