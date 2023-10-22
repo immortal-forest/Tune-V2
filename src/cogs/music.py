@@ -14,7 +14,7 @@ from logging import getLogger
 
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
-VIDEO_REGEX = r"(?:(?:youtube\.com\/(?:[^/]+\/[^/]+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)?)([a-zA-Z0-9_-]+)"
+VIDEO_REGEX = r"((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
 
 
 class TPlayer(Player):
