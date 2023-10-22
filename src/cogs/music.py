@@ -5,9 +5,10 @@ from discord.ext.commands._types import BotT
 from discord import Member, VoiceState, DMChannel, Guild
 
 from wavelink.types.track import Track
-from wavelink import Node, NodePool, Player, Playable, TrackSource, YouTubeTrack
+from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack, GenericTrack
 
 import re
+import aiohttp
 from typing import Union
 from logging import getLogger
 
@@ -32,15 +33,14 @@ class TTrack(Playable):
     PREFIX = "ytsearch:"
     PREFIXES = ["ytsearch:", "ytpl:", "ytmsearch:", "scsearch:"]
 
-    def __init__(self, ctx: Context, data: Track):
+    def __init__(self, data: Track):
         super().__init__(data)
         self.thumb = None
-        self.parsed_duration = self.parse_duration(self.length)
-        self.requester = ctx.author
-        self.channel = ctx.channel
+        self.parsed_duration: str = self.parse_duration(self.length / 1000)
+        self.ctx_: Context | None = None
 
     @staticmethod
-    def parse_duration(duration: int):
+    def parse_duration(duration):
         minutes, seconds = divmod(duration, 60)
         hours, minutes = divmod(minutes, 60)
         days, hours = divmod(hours, 24)
@@ -72,12 +72,37 @@ class TTrack(Playable):
         tracks = await NodePool.get_tracks(query, cls=cls)
         if not tracks:
             return None
-        return cls(ctx, tracks[0].data)
+
+        track = tracks[0]
+        track.ctx_ = ctx
+        await track.fetch_thumbnail()
+        return track
+
+    async def track_embed(self):
+        return (discord.Embed(
+            title="Now Playing!",
+            description=f"[{self.title}]({self.uri})",
+            color=discord.Color.blurple()
+        )
+                .add_field(name="Duration", value=self.parsed_duration, inline=False)
+                .add_field(name="Requested by", value=self.ctx_.author.mention, inline=False)
+                .add_field(name="Uploader", value=self.author)
+                .set_thumbnail(url=self.thumb))
 
 
 class Query(commands.Converter):
+
+    async def check_video(self, _id: str):
+        url = "https://img.youtube.com/vi/" + _id + "/mqdefault.jpg"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as r:
+                if r.status == 200:
+                    return True
+                else:
+                    return False
+
     async def convert(self, ctx, query: str) -> TTrack | None:
-        query = query.strip("<>")
+        query = re.sub(r'[<>]', '', query)
 
         if "list" in query or "playlist" in query:
             await ctx.send("Not supported.")  # TODO: playlist play command
@@ -85,13 +110,18 @@ class Query(commands.Converter):
 
         if "https://" in query:
             query = re.search(VIDEO_REGEX, query).group() or query
+            print(query)
 
-        tracks = await TTrack.get_track(ctx, query)
-        if tracks is None:
+        if await self.check_video(query):
+            query = f"https://youtu.be/{query}"
+            print(query)
+
+        track = await TTrack.get_track(ctx, query)
+        if track is None:
             await ctx.send("No track found.")
             return None
 
-        return tracks[0]
+        return track
 
 
 class MusicCog(commands.Cog):
@@ -112,6 +142,11 @@ class MusicCog(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: Node):
         logger.info(f"Wavelink node {node.id} ready.")
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_start(self, payload: TrackEventPayload):
+        track: TTrack = payload.original
+        await track.ctx_.channel.send(embed=await track.track_embed())
 
     async def cog_check(self, ctx: Context[BotT]) -> bool:
         if isinstance(ctx.channel, DMChannel):
@@ -176,6 +211,8 @@ class MusicCog(commands.Cog):
         track: TTrack = tracks
         if track is None:
             return
+        player: TPlayer = ctx.guild.voice_client
+        await player.play(track, populate=True)
         return
 
 
