@@ -1,9 +1,11 @@
 import discord
-from wavelink import Node, NodePool, Player, Playable, Playlist, GenericTrack
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
 from discord import Member, VoiceState, DMChannel, Guild
+
+from wavelink.types.track import Track
+from wavelink import Node, NodePool, Player, Playable, TrackSource, YouTubeTrack
 
 from typing import Union
 from logging import getLogger
@@ -22,17 +24,68 @@ class TPlayer(Player):
         await self._destroy()
 
 
-class Query(commands.Converter):
-    async def convert(self, ctx, query: str):
-        # maybe Track or Playlist
-        tracks = await GenericTrack.search(query)
+class TTrack(Playable):
+    # default YouTube
+    PREFIX = "ytsearch:"
+    PREFIXES = ["ytsearch:", "ytpl:", "ytmsearch:", "scsearch:"]
+
+    def __init__(self, ctx: Context, data: Track):
+        super().__init__(data)
+        self.thumb = None
+        self.parsed_duration = self.parse_duration(self.length)
+        self.requester = ctx.author
+        self.channel = ctx.channel
+
+    @staticmethod
+    def parse_duration(duration: int):
+        minutes, seconds = divmod(duration, 60)
+        hours, minutes = divmod(minutes, 60)
+        days, hours = divmod(hours, 24)
+
+        duration = []
+        if days > 0:
+            duration.append('{} days'.format(int(days)))
+        if hours > 0:
+            duration.append('{} hours'.format(int(hours)))
+        if minutes > 0:
+            duration.append('{} minutes'.format(int(minutes)))
+        if seconds > 0:
+            duration.append('{} seconds'.format(int(seconds)))
+
+        return ', '.join(duration)
+
+    async def fetch_thumbnail(self):
+        if self.source == TrackSource.YouTube:
+            self.thumb = await YouTubeTrack.fetch_thumbnail(self)
+        elif self.source == TrackSource.SoundCloud:
+            self.thumb = ("https://r1.hiclipart.com/path/310/259/692/ksnhqtqg0mddtjejjea3rprovf"
+                          "-8f54861ffbc19d4eb264ce3a6740cdd6.png")
+        else:
+            self.thumb = ("https://cdn.discordapp.com/avatars/980092225960702012/7bd37b51889111531a4ee267d05f48dd.png"
+                          "?size=1024")
+
+    @classmethod
+    async def get_track(cls, ctx: Context, query: str):
+        tracks = await NodePool.get_tracks(query, cls=cls)
         if not tracks:
             return None
-        if isinstance(tracks, Playlist):
-            track = tracks
-        else:
-            track = tracks[0]
-        return track
+        return cls(ctx, tracks[0].data)
+
+
+class Query(commands.Converter):
+    async def convert(self, ctx, query: str) -> TTrack | None:
+        query = query.strip("<>")
+
+        if "list" in query or "playlist" in query:
+            await ctx.send("Not supported.")  # TODO: playlist play command
+            return None
+
+        tracks = await TTrack.get_track(ctx, query)
+        if tracks is None:
+            await ctx.send("No track found.")
+            return None
+
+        return tracks[0]
 
 
 class MusicCog(commands.Cog):
@@ -114,10 +167,9 @@ class MusicCog(commands.Cog):
 
     @commands.command(name="play")
     async def _play(self, ctx: Context, *, tracks: Query):
-        track = tracks
+        track: TTrack = tracks
         if track is None:
-            return await ctx.send("No track found.")
-
+            return
         return
 
 
