@@ -7,15 +7,18 @@ from discord import Member, VoiceState, DMChannel, Guild
 from wavelink.types.track import Track
 from wavelink import Node, NodePool, Player, Playable, TrackSource, YouTubeTrack
 
+import re
 from typing import Union
 from logging import getLogger
 
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
+VIDEO_REGEX = r"(?:(?:youtube\.com\/(?:[^/]+\/[^/]+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)?)([a-zA-Z0-9_-]+)"
 
 
 class TPlayer(Player):
     def __init__(self, *args, **kwargs):
+        self.autoplay = True
         super().__init__(*args, **kwargs)
 
     async def destroy(self):
@@ -79,6 +82,9 @@ class Query(commands.Converter):
         if "list" in query or "playlist" in query:
             await ctx.send("Not supported.")  # TODO: playlist play command
             return None
+
+        if "https://" in query:
+            query = re.search(VIDEO_REGEX, query).group() or query
 
         tracks = await TTrack.get_track(ctx, query)
         if tracks is None:
