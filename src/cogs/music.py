@@ -5,7 +5,7 @@ from discord.ext.commands._types import BotT
 from discord import Member, VoiceState, DMChannel, Guild
 
 from wavelink.types.track import Track
-from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack, GenericTrack
+from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack
 
 import re
 import aiohttp
