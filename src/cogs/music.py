@@ -349,6 +349,33 @@ class MusicCog(commands.Cog):
         await player.seek(track.duration + 1)
         await ctx.message.add_reaction(MusicEmojis.SKIP)
 
+    @commands.command(name="volume", aliases=['v'])
+    async def _volume(self, ctx: Context, value: int = None):
+        player: TPlayer = ctx.guild.voice_client
+        if not player.is_connected():
+            return await ctx.send("Not playing anything at the moment.")
+
+        if value is None:
+            return await ctx.send(embed=discord.Embed(
+                title="Player volume",
+                description=f"**`{player.volume}`**",
+                color=EMBED_COLOR
+            ))
+
+        # supported is max 1000 but audio gets distorted
+        if value > 200:
+            return await ctx.send("Volume must be from 0-200")
+
+        old_volume = player.volume
+        await player.set_volume(value)
+        vol_increase = ((player.volume - old_volume) / old_volume) * 100
+        prefix = "+" if player.volume > old_volume else ""
+        return await ctx.send(embed=discord.Embed(
+            title="Player volume",
+            description=f"**`{prefix}{vol_increase}%`**",
+            color=EMBED_COLOR
+        ))
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
