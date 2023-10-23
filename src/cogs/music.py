@@ -207,6 +207,8 @@ class MusicEmojis:
     PAUSE = "▶"
     NEXT = "➡"
     PREVIOUS = "⬅"
+    ADDED = "➕"
+    REMOVED = "➖"
 
 
 class MusicCog(commands.Cog):
