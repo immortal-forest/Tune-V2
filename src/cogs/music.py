@@ -203,7 +203,7 @@ class MusicCog(commands.Cog):
                 color=EMBED_COLOR
             ))
             await vc.disconnect()
-            await vc.destroy(ctx.guild)
+            await vc.destroy()
         else:
             await ctx.send(embed=discord.Embed(
                 title="You're not connected to any VC",
