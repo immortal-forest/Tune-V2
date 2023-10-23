@@ -186,7 +186,7 @@ class PaginationUI(View):
             item.disabled = True
         await self.message.edit(view=self)
 
-    @button(label="<-", style=ButtonStyle.red)
+    @button(label=MusicEmojis.PREVIOUS, style=ButtonStyle.red)
     async def prev_button_callback(self, interaction: Interaction, button: Button):
         if self.current == self.pages:
             return await interaction.response.send_message("No previous page!", delete_after=10)
@@ -198,7 +198,7 @@ class PaginationUI(View):
         embed, self.pages = self.func(self.current)
         await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
 
-    @button(label="->", style=ButtonStyle.red)
+    @button(label=MusicEmojis.NEXT, style=ButtonStyle.red)
     async def next_button_callback(self, interaction: Interaction, button: Button):
         if self.current == self.pages:
             return await interaction.response.send_message("No next page!", delete_after=10)
@@ -318,6 +318,7 @@ class MusicCog(commands.Cog):
         else:
             return
 
+        await ctx.message.add_reaction(MusicEmojis.ADDED)
         await ctx.send(embed=discord.Embed(
             title="Enqueued a track!",
             description=desc,
@@ -346,6 +347,7 @@ class MusicCog(commands.Cog):
             return await ctx.send("Not playing anything at the moment.")
         track: TTrack = player.current
         await player.seek(track.duration + 1)
+        await ctx.message.add_reaction(MusicEmojis.SKIP)
 
 
 async def setup(bot: commands.Bot):
