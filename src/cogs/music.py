@@ -104,7 +104,7 @@ class TTrack(Playable):
         _cls.ctx_ = ctx
         return _cls
 
-    async def track_embed(self):
+    def track_embed(self):
         return (discord.Embed(
             title="Now Playing!",
             description=f"[{self.title}]({self.uri})",
@@ -235,7 +235,7 @@ class MusicCog(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackEventPayload):
         track: TTrack = payload.original
-        await track.ctx_.channel.send(embed=await track.track_embed())
+        await track.ctx_.channel.send(embed=track.track_embed())
 
     async def cog_check(self, ctx: Context[BotT]) -> bool:
         if isinstance(ctx.channel, DMChannel):
