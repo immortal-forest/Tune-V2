@@ -332,6 +332,8 @@ class MusicCog(commands.Cog):
     @commands.command(name="queue", aliases=['q'])
     async def _queue(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
         if player.queue.is_empty:
             return await ctx.send("Empty queue!")
         embed, pages = player.queue_embed(1)
@@ -343,15 +345,20 @@ class MusicCog(commands.Cog):
     @commands.command(name="skip", aliases=['next', 'n'])
     async def _skip(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
         if not player.is_playing():
             return await ctx.send("Not playing anything at the moment.")
+
         track: TTrack = player.current
         await player.seek(track.duration + 1)
         await ctx.message.add_reaction(MusicEmojis.SKIP)
 
-    @commands.command(name="volume", aliases=['v'])
+    @commands.command(name="volume", aliases=['vol', 'v'])
     async def _volume(self, ctx: Context, value: int = None):
         player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
         if not player.is_connected():
             return await ctx.send("Not playing anything at the moment.")
 
@@ -372,7 +379,7 @@ class MusicCog(commands.Cog):
         prefix = "+" if player.volume > old_volume else ""
         return await ctx.send(embed=discord.Embed(
             title="Player volume",
-            description=f"**`{prefix}{vol_increase}%`**",
+            description=f"**`{player.volume} ({prefix}{vol_increase}%)`**",
             color=EMBED_COLOR
         ))
 
