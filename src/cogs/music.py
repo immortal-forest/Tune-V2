@@ -24,8 +24,8 @@ VIDEO_REGEX = r"((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)"
 
 class TPlayer(Player):
     def __init__(self, *args, **kwargs):
-        self.autoplay = True
         super().__init__(*args, **kwargs)
+        self.autoplay = True
 
     async def destroy(self):
         if self.is_connected():
