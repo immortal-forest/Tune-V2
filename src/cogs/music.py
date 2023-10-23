@@ -383,6 +383,22 @@ class MusicCog(commands.Cog):
             color=EMBED_COLOR
         ))
 
+    @commands.command(name="pause")
+    async def _pause(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+        else:
+            await player.pause()
+            await ctx.message.add_reaction(MusicEmojis.PAUSE)
+            return await ctx.send(embed=discord.Embed(
+                title="Paused",
+                color=EMBED_COLOR
+            ))
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
