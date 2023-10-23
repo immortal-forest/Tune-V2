@@ -1,5 +1,6 @@
 import re
 import yarl
+import math
 import aiohttp
 from typing import Union
 from logging import getLogger
@@ -152,6 +153,30 @@ class Query:
         return None
 
 
+class MusicUtils:
+    @staticmethod
+    def queue_items(items: list, page: int = 1):
+        items_per_page = 10
+        pages = math.ceil(len(items) / items_per_page)
+
+        start = (page - 1) * items_per_page
+        end = start + items_per_page
+        return start, end, pages
+
+    @staticmethod
+    def get_queue(ctx: Context, page: int = 1):
+        player: TPlayer = ctx.guild.voice_client
+        queue: list[TTrack] = player.queue.copy()
+
+        s, e, pages = MusicUtils.queue_items(queue, page)
+        _queue = ''
+        for i, item in enumerate(queue[s:e], start=s):
+            _queue += f"`{i}.` [{item.title}]({item.uri})" + "\n"
+
+        return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
+                .set_footer(text=f"Page {page}/{pages}"), pages)
+
+
 class MusicCog(commands.Cog):
     __cog_name__ = "Music"
 
@@ -260,6 +285,10 @@ class MusicCog(commands.Cog):
         if not player.is_playing():
             await player.play(player.queue.get(), populate=True)  # TODO: fix populate not working for TTrack
         return
+
+    @commands.command(name="queue")
+    async def _queue(self, ctx: Context):
+        return await ctx.send("Not supported yet.")  # TODO: queue command
 
 
 async def setup(bot: commands.Bot):
