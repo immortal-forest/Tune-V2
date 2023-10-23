@@ -318,7 +318,7 @@ class MusicCog(commands.Cog):
             await player.play(player.queue.get(), populate=True)  # TODO: fix populate not working for TTrack
         return
 
-    @commands.command(name="queue")
+    @commands.command(name="queue", aliases=['q'])
     async def _queue(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
         if player.queue.is_empty:
@@ -328,6 +328,14 @@ class MusicCog(commands.Cog):
         msg = await ctx.send(embed=embed, view=view)
         view.message = msg
         return
+
+    @commands.command(name="skip", aliases=['next', 'n'])
+    async def _skip(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player.is_playing():
+            return await ctx.send("Not playing anything at the moment.")
+        track: TTrack = player.current
+        await player.seek(track.duration + 1)
 
 
 async def setup(bot: commands.Bot):
