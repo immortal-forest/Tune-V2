@@ -3,9 +3,10 @@ from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
 from discord import Member, VoiceState, DMChannel, Guild
+from wavelink.ext import spotify
 
 from wavelink.types.track import Track
-from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack
+from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack, YouTubePlaylist
 
 import re
 import aiohttp
@@ -68,7 +69,7 @@ class TTrack(Playable):
                           "?size=1024")
 
     @classmethod
-    async def get_track(cls, ctx: Context, query: str):
+    async def create_track(cls, ctx: Context, query: str):
         tracks = await NodePool.get_tracks(query, cls=cls)
         if not tracks:
             return None
@@ -77,6 +78,12 @@ class TTrack(Playable):
         track.ctx_ = ctx
         await track.fetch_thumbnail()
         return track
+
+    @classmethod
+    async def from_track(cls, ctx: Context, data: Track):
+        _cls = cls(data)
+        _cls.ctx_ = ctx
+        return _cls
 
     async def track_embed(self):
         return (discord.Embed(
@@ -114,7 +121,7 @@ class Query(commands.Converter):
         if await self.check_video(query):
             query = f"https://youtu.be/{query}"
 
-        track = await TTrack.get_track(ctx, query)
+        track = await TTrack.create_track(ctx, query)
         if track is None:
             await ctx.send("No track found.")
             return None
@@ -210,7 +217,7 @@ class MusicCog(commands.Cog):
         if track is None:
             return
         player: TPlayer = ctx.guild.voice_client
-        await player.play(track, populate=True)
+        await player.play(track, populate=True)  # TODO: fix populate not working for TTrack
         return
 
 
