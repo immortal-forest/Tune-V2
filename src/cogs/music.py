@@ -117,9 +117,8 @@ class Query(commands.Converter):
 
         if "https://" in query and ("youtube" in query or "youtu.be" in query):
             query = re.search(VIDEO_REGEX, query).group() or query
-
-        if await self.check_video(query):
-            query = f"https://youtu.be/{query}"
+            if await self.check_video(query):
+                query = f"https://youtu.be/{query}"
 
         track = await TTrack.create_track(ctx, query)
         if track is None:
