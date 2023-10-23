@@ -3,6 +3,7 @@ import yarl
 import aiohttp
 from typing import Union
 from logging import getLogger
+from ..utils import paginate_items
 
 import discord
 from discord.ext import commands
@@ -31,8 +32,14 @@ class TPlayer(Player):
             await self.disconnect()
         await self._destroy()
 
-    def get_queue_items(self):
-        return [i for i in self.queue]
+    def queue_embed(self, page: int = 1):
+        items: list[TTrack] = [i for i in self.queue]
+        start, end, pages = paginate_items(items, page)
+        _queue = ''
+        for i, track in enumerate(items[start:end], start=start + 1):
+            _queue += f"`{i}.` [{track.title}]({track.uri})" + "\n"
+        return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
+                .set_footer(text=f"Page {page}/{pages}"), pages)
 
 
 class TTrack(Playable):
@@ -158,9 +165,8 @@ class Query:
 
 
 class PaginationUI(View):
-    def __init__(self, ctx: Context, pages: int, func):
+    def __init__(self, pages: int, func):
         super().__init__(timeout=60 * 2)
-        self.ctx = ctx
         self.current = 1
         self.pages = pages
         self.func = func
@@ -173,25 +179,25 @@ class PaginationUI(View):
     @button(label="<-", style=ButtonStyle.red)
     async def prev_button_callback(self, interaction: Interaction, button: Button):
         if self.current == self.pages:
-            return await interaction.response.send_message("No previous page!")
+            return await interaction.response.send_message("No previous page!", delete_after=10)
         await interaction.response.defer()
         if self.current == 1:
             self.current = self.pages
         else:
             self.current = self.current - 1
-        # TODO: call self.func for embed and pages
+        embed, self.pages = self.func(self.current)
         await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
 
     @button(label="->", style=ButtonStyle.red)
     async def next_button_callback(self, interaction: Interaction, button: Button):
         if self.current == self.pages:
-            return await interaction.response.send_message("No next page!")
+            return await interaction.response.send_message("No next page!", delete_after=10)
         await interaction.response.defer()
         if self.current == self.pages:
             self.current = 1
         else:
             self.current = self.current + 1
-        # same as above
+        embed, self.pages = self.func(self.current)
         await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
 
 
@@ -306,7 +312,12 @@ class MusicCog(commands.Cog):
 
     @commands.command(name="queue")
     async def _queue(self, ctx: Context):
-        return await ctx.send("Not supported yet.")  # TODO: queue command
+        player: TPlayer = ctx.guild.voice_client
+        embed, pages = player.queue_embed(1)
+        view = PaginationUI(pages, player.queue_embed)
+        msg = await ctx.send(embed=embed, view=view)
+        view.message = msg
+        return
 
 
 async def setup(bot: commands.Bot):
