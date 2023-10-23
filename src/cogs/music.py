@@ -4,6 +4,7 @@ import aiohttp
 from typing import Union
 from logging import getLogger
 from ..utils import paginate_items
+from StringProgressBar import progressBar
 
 import discord
 from discord.ext import commands
@@ -439,6 +440,23 @@ class MusicCog(commands.Cog):
             description=f"**`{position} {suffix}`**",
             color=EMBED_COLOR
         ))
+
+    @commands.command(name="nowplaying", aliases=['np', 'current'])
+    async def _now_playing(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+
+        current: TTrack = player.current
+        played = int(player.position / 1000)
+        embed = current.track_embed()
+        embed.insert_field_at(index=1, name="Played", value=TTrack.parse_duration(played), inline=False)
+        progress_bar = progressBar.splitBar(int(current.duration / 1000), played, size=12)[0]
+        embed.insert_field_at(index=2, name="", value=progress_bar, inline=False)
+        return await ctx.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):
