@@ -416,6 +416,30 @@ class MusicCog(commands.Cog):
             color=EMBED_COLOR
         ))
 
+    @commands.command(name="seek")
+    async def _seek(self, ctx: Context, position: int = None):
+        if position is None:
+            return await ctx.send("Player position is required!")
+
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if not player.is_playing() or player.is_paused():
+            return await ctx.send("Not playing anything at the moment.")
+
+        if position < 0:
+            return await ctx.send("Seek value can't be negative.")
+
+        pos = position * 1000  # convert to millisecond
+        await player.seek(pos)
+        suffix = "secs" if position > 1 else "sec"
+        return await ctx.send(embed=discord.Embed(
+            title="Skipped",
+            description=f"**`{position} {suffix}`**",
+            color=EMBED_COLOR
+        ))
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
