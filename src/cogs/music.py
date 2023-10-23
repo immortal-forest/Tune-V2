@@ -115,7 +115,7 @@ class Query(commands.Converter):
             await ctx.send("Not supported.")  # TODO: playlist play command
             return None
 
-        if "https://" in query:
+        if "https://" in query and ("youtube" in query or "youtu.be" in query):
             query = re.search(VIDEO_REGEX, query).group() or query
 
         if await self.check_video(query):
