@@ -369,7 +369,7 @@ class MusicCog(commands.Cog):
                 color=EMBED_COLOR
             ))
 
-        # supported is max 1000 but audio gets distorted
+        # supported is 1000 but audio gets distorted
         if value > 200:
             return await ctx.send("Volume must be from 0-200")
 
