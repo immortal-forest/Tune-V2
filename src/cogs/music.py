@@ -389,7 +389,7 @@ class MusicCog(commands.Cog):
         if not player:
             return await ctx.send("Not connected to a VC.")
 
-        if player.current is None:
+        if player.current is None or player.is_paused():
             return await ctx.send("Not playing anything at the moment.")
         else:
             await player.pause()
