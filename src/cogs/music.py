@@ -4,6 +4,7 @@ import aiohttp
 from typing import Union
 from logging import getLogger
 from ..utils import paginate_items
+from StringProgressBar import progressBar
 
 import discord
 from discord.ext import commands
@@ -104,7 +105,7 @@ class TTrack(Playable):
         _cls.ctx_ = ctx
         return _cls
 
-    async def track_embed(self):
+    def track_embed(self):
         return (discord.Embed(
             title="Now Playing!",
             description=f"[{self.title}]({self.uri})",
@@ -235,7 +236,7 @@ class MusicCog(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackEventPayload):
         track: TTrack = payload.original
-        await track.ctx_.channel.send(embed=await track.track_embed())
+        await track.ctx_.channel.send(embed=track.track_embed())
 
     async def cog_check(self, ctx: Context[BotT]) -> bool:
         if isinstance(ctx.channel, DMChannel):
@@ -332,6 +333,8 @@ class MusicCog(commands.Cog):
     @commands.command(name="queue", aliases=['q'])
     async def _queue(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
         if player.queue.is_empty:
             return await ctx.send("Empty queue!")
         embed, pages = player.queue_embed(1)
@@ -343,11 +346,117 @@ class MusicCog(commands.Cog):
     @commands.command(name="skip", aliases=['next', 'n'])
     async def _skip(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
         if not player.is_playing():
             return await ctx.send("Not playing anything at the moment.")
+
         track: TTrack = player.current
         await player.seek(track.duration + 1)
         await ctx.message.add_reaction(MusicEmojis.SKIP)
+
+    @commands.command(name="volume", aliases=['vol', 'v'])
+    async def _volume(self, ctx: Context, value: int = None):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+        if not player.is_connected():
+            return await ctx.send("Not playing anything at the moment.")
+
+        if value is None:
+            return await ctx.send(embed=discord.Embed(
+                title="Player volume",
+                description=f"**`{player.volume}`**",
+                color=EMBED_COLOR
+            ))
+
+        # supported is 1000 but audio gets distorted
+        if value > 200:
+            return await ctx.send("Volume must be from 0-200")
+
+        old_volume = player.volume
+        await player.set_volume(value)
+        vol_increase = ((player.volume - old_volume) / old_volume) * 100
+        prefix = "+" if player.volume > old_volume else ""
+        return await ctx.send(embed=discord.Embed(
+            title="Player volume",
+            description=f"**`{player.volume} ({prefix}{vol_increase}%)`**",
+            color=EMBED_COLOR
+        ))
+
+    @commands.command(name="pause")
+    async def _pause(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None or player.is_paused():
+            return await ctx.send("Not playing anything at the moment.")
+        else:
+            await player.pause()
+            await ctx.message.add_reaction(MusicEmojis.PAUSE)
+            return await ctx.send(embed=discord.Embed(
+                title="Paused",
+                color=EMBED_COLOR
+            ))
+
+    @commands.command(name="resume")
+    async def _resume(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+        if player.is_playing():
+            return await ctx.send("Player isn't paused!")
+        await ctx.message.add_reaction(MusicEmojis.PLAY)
+        await player.resume()
+        return await ctx.send(embed=discord.Embed(
+            title="Resumed",
+            color=EMBED_COLOR
+        ))
+
+    @commands.command(name="seek")
+    async def _seek(self, ctx: Context, position: int = None):
+        if position is None:
+            return await ctx.send("Player position is required!")
+
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if not player.is_playing() or player.is_paused():
+            return await ctx.send("Not playing anything at the moment.")
+
+        if position < 0:
+            return await ctx.send("Seek value can't be negative.")
+
+        pos = position * 1000  # convert to millisecond
+        await player.seek(pos)
+        suffix = "secs" if position > 1 else "sec"
+        return await ctx.send(embed=discord.Embed(
+            title="Skipped",
+            description=f"**`{position} {suffix}`**",
+            color=EMBED_COLOR
+        ))
+
+    @commands.command(name="nowplaying", aliases=['np', 'current'])
+    async def _now_playing(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+
+        current: TTrack = player.current
+        played = int(player.position / 1000)
+        embed = current.track_embed()
+        embed.insert_field_at(index=1, name="Played", value=TTrack.parse_duration(played), inline=False)
+        progress_bar = progressBar.splitBar(int(current.duration / 1000), played, size=12)[0]
+        embed.insert_field_at(index=2, name="", value=progress_bar, inline=False)
+        return await ctx.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):
