@@ -9,7 +9,9 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
-from discord import Member, VoiceState, DMChannel, Guild
+from discord import Member, VoiceState, DMChannel, Guild, ButtonStyle, Interaction
+
+from discord.ui import View, Button, button
 
 from wavelink.types.track import Track
 from wavelink import (Node, NodePool, Player, Playable, TrackSource, TrackEventPayload,
@@ -29,6 +31,9 @@ class TPlayer(Player):
         if self.is_connected():
             await self.disconnect()
         await self._destroy()
+
+    def get_queue_items(self):
+        return [i for i in self.queue]
 
 
 class TTrack(Playable):
@@ -153,28 +158,51 @@ class Query:
         return None
 
 
-class MusicUtils:
+class PaginationUI(View):
+    def __init__(self, ctx: Context, pages: int, func):
+        super().__init__(timeout=60 * 2)
+        self.ctx = ctx
+        self.current = 1
+        self.pages = pages
+        self.func = func
+
+    async def on_timeout(self) -> None:
+        for item in self.children:
+            item.disabled = True
+        await self.message.edit(view=self)
+
+    @button(label="<-", style=ButtonStyle.red)
+    async def prev_button_callback(self, interaction: Interaction, button: Button):
+        if self.current == self.pages:
+            return await interaction.response.send_message("No previous page!")
+        await interaction.response.defer()
+        if self.current == 1:
+            self.current = self.pages
+        else:
+            self.current = self.current - 1
+        # TODO: call self.func for embed and pages
+        await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
+
+    @button(label="->", style=ButtonStyle.red)
+    async def next_button_callback(self, interaction: Interaction, button: Button):
+        if self.current == self.pages:
+            return await interaction.response.send_message("No next page!")
+        await interaction.response.defer()
+        if self.current == self.pages:
+            self.current = 1
+        else:
+            self.current = self.current + 1
+        # same as above
+        await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
+
     @staticmethod
-    def queue_items(items: list, page: int = 1):
+    def paginate_items(items: list, page: int = 1):
         items_per_page = 10
         pages = math.ceil(len(items) / items_per_page)
 
         start = (page - 1) * items_per_page
         end = start + items_per_page
         return start, end, pages
-
-    @staticmethod
-    def get_queue(ctx: Context, page: int = 1):
-        player: TPlayer = ctx.guild.voice_client
-        queue: list[TTrack] = player.queue.copy()
-
-        s, e, pages = MusicUtils.queue_items(queue, page)
-        _queue = ''
-        for i, item in enumerate(queue[s:e], start=s):
-            _queue += f"`{i}.` [{item.title}]({item.uri})" + "\n"
-
-        return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
-                .set_footer(text=f"Page {page}/{pages}"), pages)
 
 
 class MusicCog(commands.Cog):
