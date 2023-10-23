@@ -164,6 +164,16 @@ class Query:
         return None
 
 
+class MusicEmojis:
+    SKIP = "⏭"
+    PLAY = "⏸"
+    PAUSE = "▶"
+    NEXT = "➡"
+    PREVIOUS = "⬅"
+    ADDED = "➕"
+    REMOVED = "➖"
+
+
 class PaginationUI(View):
     def __init__(self, pages: int, func):
         super().__init__(timeout=60 * 2)
@@ -199,16 +209,6 @@ class PaginationUI(View):
             self.current = self.current + 1
         embed, self.pages = self.func(self.current)
         await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
-
-
-class MusicEmojis:
-    SKIP = "⏭"
-    PLAY = "⏸"
-    PAUSE = "▶"
-    NEXT = "➡"
-    PREVIOUS = "⬅"
-    ADDED = "➕"
-    REMOVED = "➖"
 
 
 class MusicCog(commands.Cog):
