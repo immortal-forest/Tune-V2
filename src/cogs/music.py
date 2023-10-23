@@ -97,7 +97,7 @@ class TTrack(Playable):
                 .set_thumbnail(url=self.thumb))
 
 
-class Query(commands.Converter):
+class Query:
 
     async def check_video(self, _id: str):
         url = "https://img.youtube.com/vi/" + _id + "/mqdefault.jpg"
@@ -108,7 +108,7 @@ class Query(commands.Converter):
                 else:
                     return False
 
-    async def convert(self, ctx, query: str) -> TTrack | None:
+    async def parse(self, ctx, query: str) -> TTrack | None:
         query = re.sub(r'[<>]', '', query)
 
         if "list" in query or "playlist" in query:
@@ -126,6 +126,9 @@ class Query(commands.Converter):
             return None
 
         return track
+
+    async def parse_playlist(self, ctx, query: str) -> list[TTrack] | None:
+        pass
 
 
 class MusicCog(commands.Cog):
@@ -184,6 +187,9 @@ class MusicCog(commands.Cog):
                 color=EMBED_COLOR
             ), delete_after=5)
 
+        if vc.channel == channel:
+            return await ctx.send("Bot is already in VC.", delete_after=5)
+
         if not vc:
             await channel.connect(cls=TPlayer)
         else:
@@ -211,7 +217,11 @@ class MusicCog(commands.Cog):
             ), delete_after=5)
 
     @commands.command(name="play")
-    async def _play(self, ctx: Context, *, tracks: Query):
+    async def _play(self, ctx: Context, *, query: str):
+        if not ctx.guild.voice_client:
+            await ctx.invoke(self._join)
+
+        tracks = await Query().parse(ctx, query)
         track: TTrack = tracks
         if track is None:
             return
