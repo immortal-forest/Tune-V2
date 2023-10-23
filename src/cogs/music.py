@@ -1,4 +1,5 @@
 import re
+import yarl
 import aiohttp
 from typing import Union
 from logging import getLogger
@@ -10,7 +11,8 @@ from discord.ext.commands._types import BotT
 from discord import Member, VoiceState, DMChannel, Guild
 
 from wavelink.types.track import Track
-from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack
+from wavelink import (Node, NodePool, Player, Playable, TrackSource, TrackEventPayload,
+                      YouTubeTrack, SoundCloudTrack)
 
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
@@ -68,12 +70,17 @@ class TTrack(Playable):
                           "?size=1024")
 
     @classmethod
-    async def create_track(cls, ctx: Context, query: str):
-        tracks = await NodePool.get_tracks(query, cls=cls)
+    async def create_track(cls, ctx: Context, query: str, source: int):
+        if source == TrackSource.YouTube:
+            tracks = await NodePool.get_tracks(query, cls=YouTubeTrack)
+        elif source == TrackSource.SoundCloud:
+            tracks = await NodePool.get_tracks(query, cls=SoundCloudTrack)
+        else:
+            tracks = await NodePool.get_tracks(f"{cls.PREFIX}{query}", cls=cls)
+
         if not tracks:
             return None
-
-        track = tracks[0]
+        track = cls(tracks[0].data)
         track.ctx_ = ctx
         await track.fetch_thumbnail()
         return track
@@ -108,19 +115,32 @@ class Query:
                 else:
                     return False
 
-    async def parse(self, ctx, query: str) -> TTrack | None:
+    async def parse_query(self, ctx, query: str) -> TTrack | list[TTrack] | None:
         query = re.sub(r'[<>]', '', query)
+        check = yarl.URL(query)
+        # YouTube or SoundCloud Playlist
+        if check.query.get("list") or "sets" in check.parts:
+            return await self.parse_playlist(ctx, query)
+        return await self.parse_single(ctx, query)
 
-        if "list" in query or "playlist" in query:
-            await ctx.send("Not supported.")  # TODO: playlist play command
-            return None
-
+    async def parse_single(self, ctx, query: str) -> TTrack | None:
         if "https://" in query and ("youtube" in query or "youtu.be" in query):
             query = re.search(VIDEO_REGEX, query).group() or query
+
             if await self.check_video(query):
                 query = f"https://youtu.be/{query}"
+            else:
+                await ctx.send("Invalid YouTube video url")
+                return None
 
-        track = await TTrack.create_track(ctx, query)
+            track = await TTrack.create_track(ctx, query, TrackSource.YouTube)
+
+        elif "soundcloud" in query:
+            track = await TTrack.create_track(ctx, query, TrackSource.SoundCloud)
+
+        else:  # default use YouTube
+            track = await TTrack.create_track(ctx, query, TrackSource.Unknown)
+
         if track is None:
             await ctx.send("No track found.")
             return None
@@ -128,7 +148,8 @@ class Query:
         return track
 
     async def parse_playlist(self, ctx, query: str) -> list[TTrack] | None:
-        pass
+        await ctx.send("Not supported.")  # TODO: playlist play command
+        return None
 
 
 class MusicCog(commands.Cog):
@@ -187,11 +208,10 @@ class MusicCog(commands.Cog):
                 color=EMBED_COLOR
             ), delete_after=5)
 
-        if vc.channel == channel:
-            return await ctx.send("Bot is already in VC.", delete_after=5)
-
         if not vc:
             await channel.connect(cls=TPlayer)
+        elif vc.channel == channel:
+            return await ctx.send("Bot is already in VC.", delete_after=5)
         else:
             await vc.move_to(channel)
         return await ctx.send(embed=discord.Embed(
@@ -221,12 +241,19 @@ class MusicCog(commands.Cog):
         if not ctx.guild.voice_client:
             await ctx.invoke(self._join)
 
-        tracks = await Query().parse(ctx, query)
-        track: TTrack = tracks
-        if track is None:
-            return
         player: TPlayer = ctx.guild.voice_client
-        await player.play(track, populate=True)  # TODO: fix populate not working for TTrack
+
+        tracks = await Query().parse_query(ctx, query)
+        if isinstance(tracks, list):
+            for track in tracks:
+                await player.queue.put_wait(track)
+        elif isinstance(tracks, TTrack):
+            await player.queue.put_wait(tracks)
+        else:
+            return
+
+        if not player.is_playing():
+            await player.play(player.queue.get(), populate=True)  # TODO: fix populate not working for TTrack
         return
 
 
