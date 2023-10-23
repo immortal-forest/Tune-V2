@@ -37,7 +37,7 @@ class TPlayer(Player):
         start, end, pages = paginate_items(items, page)
         _queue = ''
         for i, track in enumerate(items[start:end], start=start + 1):
-            _queue += f"`{i}.` [{track.title}]({track.uri})" + "\n"
+            _queue += f"`{i}.` **[{track.title}]({track.uri})**" + "\n"
         return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
                 .set_footer(text=f"Page {page}/{pages}"), pages)
 
@@ -321,6 +321,8 @@ class MusicCog(commands.Cog):
     @commands.command(name="queue")
     async def _queue(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
+        if player.queue.is_empty:
+            return await ctx.send("Empty queue!")
         embed, pages = player.queue_embed(1)
         view = PaginationUI(pages, player.queue_embed)
         msg = await ctx.send(embed=embed, view=view)
