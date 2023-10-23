@@ -399,6 +399,23 @@ class MusicCog(commands.Cog):
                 color=EMBED_COLOR
             ))
 
+    @commands.command(name="resume")
+    async def _resume(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+        if player.is_playing():
+            return await ctx.send("Player isn't paused!")
+        await ctx.message.add_reaction(MusicEmojis.PLAY)
+        await player.resume()
+        return await ctx.send(embed=discord.Embed(
+            title="Resumed",
+            color=EMBED_COLOR
+        ))
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
