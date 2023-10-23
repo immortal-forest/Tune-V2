@@ -81,6 +81,7 @@ class TTrack(Playable):
     @classmethod
     async def from_track(cls, ctx: Context, data: Track):
         _cls = cls(data)
+        await _cls.fetch_thumbnail()
         _cls.ctx_ = ctx
         return _cls
 
