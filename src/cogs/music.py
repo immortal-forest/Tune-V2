@@ -37,7 +37,7 @@ class TPlayer(Player):
         start, end, pages = paginate_items(items, page)
         _queue = ''
         for i, track in enumerate(items[start:end], start=start + 1):
-            _queue += f"`{i}.` [{track.title}]({track.uri})" + "\n"
+            _queue += f"`{i}.` **[{track.title}]({track.uri})**" + "\n"
         return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
                 .set_footer(text=f"Page {page}/{pages}"), pages)
 
@@ -164,6 +164,16 @@ class Query:
         return None
 
 
+class MusicEmojis:
+    SKIP = "⏭"
+    PLAY = "⏸"
+    PAUSE = "▶"
+    NEXT = "➡"
+    PREVIOUS = "⬅"
+    ADDED = "➕"
+    REMOVED = "➖"
+
+
 class PaginationUI(View):
     def __init__(self, pages: int, func):
         super().__init__(timeout=60 * 2)
@@ -176,7 +186,7 @@ class PaginationUI(View):
             item.disabled = True
         await self.message.edit(view=self)
 
-    @button(label="<-", style=ButtonStyle.red)
+    @button(label=MusicEmojis.PREVIOUS, style=ButtonStyle.red)
     async def prev_button_callback(self, interaction: Interaction, button: Button):
         if self.current == self.pages:
             return await interaction.response.send_message("No previous page!", delete_after=10)
@@ -188,7 +198,7 @@ class PaginationUI(View):
         embed, self.pages = self.func(self.current)
         await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
 
-    @button(label="->", style=ButtonStyle.red)
+    @button(label=MusicEmojis.NEXT, style=ButtonStyle.red)
     async def next_button_callback(self, interaction: Interaction, button: Button):
         if self.current == self.pages:
             return await interaction.response.send_message("No next page!", delete_after=10)
@@ -301,23 +311,43 @@ class MusicCog(commands.Cog):
         if isinstance(tracks, list):
             for track in tracks:
                 await player.queue.put_wait(track)
+            desc = f"**Playlist {len(tracks)}**"  # TODO: playlist name from TPlaylistTrack
         elif isinstance(tracks, TTrack):
             await player.queue.put_wait(tracks)
+            desc = f"**[{tracks.title}]({tracks.uri})**"
         else:
             return
+
+        await ctx.message.add_reaction(MusicEmojis.ADDED)
+        await ctx.send(embed=discord.Embed(
+            title="Enqueued a track!",
+            description=desc,
+            color=EMBED_COLOR
+        ))
 
         if not player.is_playing():
             await player.play(player.queue.get(), populate=True)  # TODO: fix populate not working for TTrack
         return
 
-    @commands.command(name="queue")
+    @commands.command(name="queue", aliases=['q'])
     async def _queue(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
+        if player.queue.is_empty:
+            return await ctx.send("Empty queue!")
         embed, pages = player.queue_embed(1)
         view = PaginationUI(pages, player.queue_embed)
         msg = await ctx.send(embed=embed, view=view)
         view.message = msg
         return
+
+    @commands.command(name="skip", aliases=['next', 'n'])
+    async def _skip(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player.is_playing():
+            return await ctx.send("Not playing anything at the moment.")
+        track: TTrack = player.current
+        await player.seek(track.duration + 1)
+        await ctx.message.add_reaction(MusicEmojis.SKIP)
 
 
 async def setup(bot: commands.Bot):
