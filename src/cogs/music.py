@@ -1,17 +1,16 @@
+import re
+import aiohttp
+from typing import Union
+from logging import getLogger
+
 import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
 from discord import Member, VoiceState, DMChannel, Guild
-from wavelink.ext import spotify
 
 from wavelink.types.track import Track
-from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack, YouTubePlaylist
-
-import re
-import aiohttp
-from typing import Union
-from logging import getLogger
+from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack
 
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
