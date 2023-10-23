@@ -1,6 +1,5 @@
 import re
 import yarl
-import math
 import aiohttp
 from typing import Union
 from logging import getLogger
@@ -194,15 +193,6 @@ class PaginationUI(View):
             self.current = self.current + 1
         # same as above
         await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
-
-    @staticmethod
-    def paginate_items(items: list, page: int = 1):
-        items_per_page = 10
-        pages = math.ceil(len(items) / items_per_page)
-
-        start = (page - 1) * items_per_page
-        end = start + items_per_page
-        return start, end, pages
 
 
 class MusicCog(commands.Cog):
