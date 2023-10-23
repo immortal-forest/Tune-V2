@@ -201,6 +201,14 @@ class PaginationUI(View):
         await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
 
 
+class MusicEmojis:
+    SKIP = "⏭"
+    PLAY = "⏸"
+    PAUSE = "▶"
+    NEXT = "➡"
+    PREVIOUS = "⬅"
+
+
 class MusicCog(commands.Cog):
     __cog_name__ = "Music"
 
