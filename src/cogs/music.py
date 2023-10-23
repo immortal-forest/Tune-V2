@@ -1,3 +1,8 @@
+import re
+import aiohttp
+from typing import Union
+from logging import getLogger
+
 import discord
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -6,11 +11,6 @@ from discord import Member, VoiceState, DMChannel, Guild
 
 from wavelink.types.track import Track
 from wavelink import Node, NodePool, Player, Playable, TrackSource, TrackEventPayload, YouTubeTrack
-
-import re
-import aiohttp
-from typing import Union
-from logging import getLogger
 
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
@@ -68,7 +68,7 @@ class TTrack(Playable):
                           "?size=1024")
 
     @classmethod
-    async def get_track(cls, ctx: Context, query: str):
+    async def create_track(cls, ctx: Context, query: str):
         tracks = await NodePool.get_tracks(query, cls=cls)
         if not tracks:
             return None
@@ -77,6 +77,12 @@ class TTrack(Playable):
         track.ctx_ = ctx
         await track.fetch_thumbnail()
         return track
+
+    @classmethod
+    async def from_track(cls, ctx: Context, data: Track):
+        _cls = cls(data)
+        _cls.ctx_ = ctx
+        return _cls
 
     async def track_embed(self):
         return (discord.Embed(
@@ -108,13 +114,12 @@ class Query(commands.Converter):
             await ctx.send("Not supported.")  # TODO: playlist play command
             return None
 
-        if "https://" in query:
+        if "https://" in query and ("youtube" in query or "youtu.be" in query):
             query = re.search(VIDEO_REGEX, query).group() or query
+            if await self.check_video(query):
+                query = f"https://youtu.be/{query}"
 
-        if await self.check_video(query):
-            query = f"https://youtu.be/{query}"
-
-        track = await TTrack.get_track(ctx, query)
+        track = await TTrack.create_track(ctx, query)
         if track is None:
             await ctx.send("No track found.")
             return None
@@ -210,7 +215,7 @@ class MusicCog(commands.Cog):
         if track is None:
             return
         player: TPlayer = ctx.guild.voice_client
-        await player.play(track, populate=True)
+        await player.play(track, populate=True)  # TODO: fix populate not working for TTrack
         return
 
 
