@@ -164,6 +164,8 @@ class MusicCog(commands.Cog):
         if not member.bot and after.channel is None:
             if not [m for m in before.channel.members if not m.bot]:
                 vc: TPlayer = self.get_player(member.guild)
+                if not vc:
+                    return
                 await vc.disconnect()
                 await vc.destroy()
 
@@ -242,6 +244,9 @@ class MusicCog(commands.Cog):
             await ctx.invoke(self._join)
 
         player: TPlayer = ctx.guild.voice_client
+
+        if not player:
+            return
 
         tracks = await Query().parse_query(ctx, query)
         if isinstance(tracks, list):
