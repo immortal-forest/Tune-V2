@@ -301,10 +301,18 @@ class MusicCog(commands.Cog):
         if isinstance(tracks, list):
             for track in tracks:
                 await player.queue.put_wait(track)
+            desc = f"**Playlist {len(tracks)}**"  # TODO: playlist name from TPlaylistTrack
         elif isinstance(tracks, TTrack):
             await player.queue.put_wait(tracks)
+            desc = f"**[{tracks.title}]({tracks.uri})**"
         else:
             return
+
+        await ctx.send(embed=discord.Embed(
+            title="Enqueued a track!",
+            description=desc,
+            color=EMBED_COLOR
+        ))
 
         if not player.is_playing():
             await player.play(player.queue.get(), populate=True)  # TODO: fix populate not working for TTrack
