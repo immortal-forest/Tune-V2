@@ -290,6 +290,7 @@ class MusicCog(commands.Cog):
                 title=f"Disconnected: *{vc.channel.name}*",
                 color=EMBED_COLOR
             ))
+            vc.queue.reset()
             await vc.disconnect()
             await vc.destroy()
         else:
@@ -457,6 +458,85 @@ class MusicCog(commands.Cog):
         progress_bar = progressBar.splitBar(int(current.duration / 1000), played, size=12)[0]
         embed.insert_field_at(index=2, name="", value=progress_bar, inline=False)
         return await ctx.send(embed=embed)
+
+    @commands.command(name="shuffle")
+    async def _shuffle(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+        if player.queue.is_empty:
+            return await ctx.send("Empty queue.")
+
+        player.queue.shuffle()
+        return await ctx.send(embed=discord.Embed(
+            title="Shuffled the queue.",
+            color=EMBED_COLOR
+        ))
+
+    @commands.command(name="loops", aliases=['ls'])
+    async def _loop_single(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+
+        if player.queue.loop_all:
+            return await ctx.send("Queue loop is enabled. Disable it to loop a single track.")
+
+        player.queue.loop = not player.queue.loop
+        if player.queue.loop:
+            track: TTrack = player.current
+            await ctx.send(embed=discord.Embed(
+                title="Looping track",
+                description=f"**[{track.title}]({track.uri})**",
+                color=EMBED_COLOR
+            ))
+        else:
+            await ctx.send(embed=discord.Embed(
+                title="Disabled single track looping",
+                color=EMBED_COLOR
+            ))
+
+    @commands.command(name="loopq", aliases=['lq', 'loopall', 'la'])
+    async def _loop_all(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+
+        if player.queue.loop:
+            return await ctx.send("Single track loop is enabled. Disable it to loop the queue.")
+
+        player.queue.loop_all = not player.queue.loop_all
+        if player.queue.loop_all:
+            await ctx.send(embed=discord.Embed(
+                title="Looping the queue",
+                color=EMBED_COLOR
+            ))
+        else:
+            await ctx.send(embed=discord.Embed(
+                title="Disabled queue looping",
+                color=EMBED_COLOR
+            ))
+
+    @commands.command(name="clear")
+    async def _clear(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.queue.is_empty:
+            return await ctx.send("Empty queue.")
+
+        player.queue.clear()
+        return await ctx.send(embed=discord.Embed(
+            title="Cleared the queue",
+            color=EMBED_COLOR
+        ))
 
 
 async def setup(bot: commands.Bot):
