@@ -473,6 +473,56 @@ class MusicCog(commands.Cog):
             color=EMBED_COLOR
         ))
 
+    @commands.command(name="loops", aliases=['ls'])
+    async def _loop_single(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+
+        if player.queue.loop_all:
+            return await ctx.send("Queue loop is enabled. Disable it to loop a single track.")
+
+        player.queue.loop = not player.queue.loop
+        if player.queue.loop:
+            track: TTrack = player.current
+            await ctx.send(embed=discord.Embed(
+                title="Looping track",
+                description=f"**[{track.title}]({track.uri})**",
+                color=EMBED_COLOR
+            ))
+        else:
+            await ctx.send(embed=discord.Embed(
+                title="Disabled single track looping",
+                color=EMBED_COLOR
+            ))
+
+    @commands.command(name="loopq", aliases=['lq', 'loopall', 'la'])
+    async def _loop_all(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.current is None:
+            return await ctx.send("Not playing anything at the moment.")
+
+        if player.queue.loop:
+            return await ctx.send("Single track loop is enabled. Disable it to loop the queue.")
+
+        player.queue.loop_all = not player.queue.loop_all
+        if player.queue.loop_all:
+            await ctx.send(embed=discord.Embed(
+                title="Looping the queue",
+                color=EMBED_COLOR
+            ))
+        else:
+            await ctx.send(embed=discord.Embed(
+                title="Disabled queue looping",
+                color=EMBED_COLOR
+            ))
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
