@@ -465,7 +465,7 @@ class MusicCog(commands.Cog):
         if not player:
             return await ctx.send("Not connected to a VC.")
         if player.queue.is_empty:
-            return await ctx.send("Not playing anything at the moment.")
+            return await ctx.send("Empty queue.")
 
         player.queue.shuffle()
         return await ctx.send(embed=discord.Embed(
