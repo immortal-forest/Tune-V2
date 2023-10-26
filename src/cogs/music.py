@@ -523,6 +523,21 @@ class MusicCog(commands.Cog):
                 color=EMBED_COLOR
             ))
 
+    @commands.command(name="clear")
+    async def _clear(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.queue.is_empty:
+            return await ctx.send("Empty queue.")
+
+        player.queue.clear()
+        return await ctx.send(embed=discord.Embed(
+            title="Cleared the queue",
+            color=EMBED_COLOR
+        ))
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
