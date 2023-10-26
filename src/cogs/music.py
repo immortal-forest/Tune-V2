@@ -538,6 +538,32 @@ class MusicCog(commands.Cog):
             color=EMBED_COLOR
         ))
 
+    @commands.command(name="remove", aliases=['rm'])
+    async def _remove(self, ctx: Context, index: int = None):
+        if index is None:
+            return await ctx.send("Track's index is needed.")
+
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.queue.is_empty:
+            return await ctx.send("Empty queue.")
+
+        _index = index - 1
+        if _index < 0:
+            return await ctx.send("Index can't be `0`.")
+        if _index > player.queue.count:
+            return await ctx.send(f"No track at index `{index}`.")
+
+        track: TTrack = player.queue[_index]
+        del player.queue[_index]
+        return await ctx.send(embed=discord.Embed(
+            title="Removed a track from the queue",
+            description=f"**[{track.title}]({track.uri})**",
+            color=EMBED_COLOR
+        ))
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
