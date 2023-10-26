@@ -290,6 +290,7 @@ class MusicCog(commands.Cog):
                 title=f"Disconnected: *{vc.channel.name}*",
                 color=EMBED_COLOR
             ))
+            vc.queue.reset()
             await vc.disconnect()
             await vc.destroy()
         else:
