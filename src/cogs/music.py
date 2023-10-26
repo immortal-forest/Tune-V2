@@ -459,6 +459,20 @@ class MusicCog(commands.Cog):
         embed.insert_field_at(index=2, name="", value=progress_bar, inline=False)
         return await ctx.send(embed=embed)
 
+    @commands.command(name="shuffle")
+    async def _shuffle(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+        if player.queue.is_empty:
+            return await ctx.send("Not playing anything at the moment.")
+
+        player.queue.shuffle()
+        return await ctx.send(embed=discord.Embed(
+            title="Shuffled the queue.",
+            color=EMBED_COLOR
+        ))
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
