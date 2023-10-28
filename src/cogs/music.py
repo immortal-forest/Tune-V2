@@ -12,7 +12,7 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
-from discord import Member, VoiceState, DMChannel, Guild, ButtonStyle, Interaction
+from discord import Member, VoiceState, DMChannel, Guild, ButtonStyle, Interaction, Message
 
 from discord.ui import View, Button, button
 
@@ -73,6 +73,8 @@ class TPlayer(Player):
                     continue
                 await self.auto_queue.put_wait(await TTrack.from_track(ctx, track_.data))
             self.auto_queue.shuffle()
+
+            ctx.bot.dispatch("populate_done", message=self.populate_message)
 
 
 class TTrack(Playable):
@@ -278,11 +280,16 @@ class MusicCog(commands.Cog):
     @commands.Cog.listener()
     async def on_populate(self, ctx: Context, playlist_name: str, playlist_url: str):
         logger.info(f"Populating: {playlist_url}")
-        await ctx.send(embed=discord.Embed(
+        player: TPlayer = ctx.guild.voice_client
+        player.populate_message = await ctx.send(embed=discord.Embed(
             title="Populating auto-queue",
             description=f"**[{playlist_name}]({playlist_url})**",
             color=EMBED_COLOR
         ))
+
+    @commands.Cog.listener()
+    async def on_populate_done(self, message: Message):
+        await message.add_reaction(MusicEmojis.DONE)
 
     async def cog_check(self, ctx: Context[BotT]) -> bool:
         if isinstance(ctx.channel, DMChannel):
