@@ -88,7 +88,12 @@ class TTrack(Playable):
         elif source == TrackSource.SoundCloud:
             tracks = await NodePool.get_tracks(query, cls=SoundCloudTrack)
         else:
-            tracks = await NodePool.get_tracks(f"{cls.PREFIX}{query}", cls=cls)
+            tracks = await NodePool.get_tracks(f"{self.PREFIX}{query}", cls=self)
+        return tracks
+
+    @classmethod
+    async def create_track(cls, ctx: Context, query: str, source: int):
+        tracks = await cls.search_tracks(cls, query, source)
 
         if not tracks:
             return None
