@@ -36,12 +36,16 @@ class TPlayer(Player):
             await self.disconnect()
         await self._destroy()
 
-    def queue_embed(self, page: int = 1):
-        items: list[TTrack] = [i for i in self.queue]
+    def queue_string(self, page: int, items: list[TTrack]):
         start, end, pages = paginate_items(items, page)
         _queue = ''
         for i, track in enumerate(items[start:end], start=start + 1):
             _queue += f"`{i}.` **[{track.title}]({track.uri})**" + "\n"
+        return _queue, pages
+
+    def queue_embed(self, page: int = 1):
+        items: list[TTrack] = [i for i in self.queue]
+        _queue, pages = self.queue_string(page, items)
         return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
                 .set_footer(text=f"Page {page}/{pages}"), pages)
 
