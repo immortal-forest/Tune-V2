@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 import yarl
 import aiohttp
@@ -16,7 +18,7 @@ from discord.ui import View, Button, button
 
 from wavelink.types.track import Track
 from wavelink import (Node, NodePool, Player, Playable, TrackSource, TrackEventPayload,
-                      YouTubeTrack, SoundCloudTrack)
+                      YouTubeTrack, SoundCloudTrack, YouTubePlaylist)
 
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
@@ -27,6 +29,7 @@ class TPlayer(Player):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.autoplay = True
+        self.populate = True
 
     async def destroy(self):
         if self.is_connected():
@@ -41,6 +44,25 @@ class TPlayer(Player):
             _queue += f"`{i}.` **[{track.title}]({track.uri})**" + "\n"
         return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
                 .set_footer(text=f"Page {page}/{pages}"), pages)
+
+    async def populate_auto_queue(self, ctx: Context, track: TTrack):
+        if not self.populate:
+            return
+
+        if track.source == TrackSource.YouTube:
+            query = f'https://www.youtube.com/watch?v={track.identifier}&list=RD{track.identifier}'
+            recos: YouTubePlaylist = await self.current_node.get_playlist(query=query, cls=YouTubePlaylist)
+
+            ctx.bot.dispatch("populate", ctx=ctx, playlist_name=recos.name, playlist_url=query)
+
+            recos: list[YouTubeTrack] = getattr(recos, "tracks", [])
+            queues = set(self.queue) | set(self.auto_queue) | set(self.auto_queue.history) | {track}
+
+            for track_ in recos:
+                if track_ in queues:
+                    continue
+                await self.auto_queue.put_wait(await TTrack.from_track(ctx, track_.data))
+            self.auto_queue.shuffle()
 
 
 class TTrack(Playable):
@@ -242,6 +264,15 @@ class MusicCog(commands.Cog):
         track: TTrack = payload.original
         await track.ctx_.channel.send(embed=track.track_embed())
 
+    @commands.Cog.listener()
+    async def on_populate(self, ctx: Context, playlist_name: str, playlist_url: str):
+        logger.info(f"Populating: {playlist_url}")
+        await ctx.send(embed=discord.Embed(
+            title="Populating auto-queue",
+            description=f"**[{playlist_name}]({playlist_url})**",
+            color=EMBED_COLOR
+        ))
+
     async def cog_check(self, ctx: Context[BotT]) -> bool:
         if isinstance(ctx.channel, DMChannel):
             await ctx.send("Music is not supported in DMs.")
@@ -332,7 +363,9 @@ class MusicCog(commands.Cog):
         ))
 
         if not player.is_playing():
-            await player.play(player.queue.get(), populate=True)  # TODO: fix populate not working for TTrack
+            _track: TTrack = player.queue.get()
+            await player.play(_track, populate=True)
+            await player.populate_auto_queue(ctx, _track)
         return
 
     @commands.command(name="queue", aliases=['q'])
