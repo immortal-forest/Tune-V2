@@ -399,6 +399,21 @@ class MusicCog(commands.Cog):
         view.message = msg
         return
 
+    @commands.command(name="autoqueue", aliases=['autoq', 'aq', 'aqueue'])
+    async def _auto_queue(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.auto_queue.is_empty:
+            return await ctx.send("Empty auto-queue!")
+
+        embed, pages = player.auto_queue_embed(1)
+        view = PaginationUI(pages, player.auto_queue_embed)
+        msg = await ctx.send(embed=embed, view=view)
+        view.message = msg
+        return
+
     @commands.command(name="skip", aliases=['next', 'n'])
     async def _skip(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
