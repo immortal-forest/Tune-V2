@@ -202,6 +202,7 @@ class Query:
 
 
 class MusicEmojis:
+    DONE = "✅"
     SKIP = "⏭"
     PLAY = "⏸"
     PAUSE = "▶"
