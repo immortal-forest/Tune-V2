@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 import yarl
 import aiohttp
@@ -10,13 +12,13 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
-from discord import Member, VoiceState, DMChannel, Guild, ButtonStyle, Interaction
+from discord import Member, VoiceState, DMChannel, Guild, ButtonStyle, Interaction, Message
 
 from discord.ui import View, Button, button
 
 from wavelink.types.track import Track
 from wavelink import (Node, NodePool, Player, Playable, TrackSource, TrackEventPayload,
-                      YouTubeTrack, SoundCloudTrack)
+                      YouTubeTrack, SoundCloudTrack, YouTubePlaylist)
 
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
@@ -27,20 +29,52 @@ class TPlayer(Player):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.autoplay = True
+        self.populate = True
 
     async def destroy(self):
         if self.is_connected():
             await self.disconnect()
         await self._destroy()
 
-    def queue_embed(self, page: int = 1):
-        items: list[TTrack] = [i for i in self.queue]
+    def queue_string(self, page: int, items: list[TTrack]):
         start, end, pages = paginate_items(items, page)
         _queue = ''
         for i, track in enumerate(items[start:end], start=start + 1):
             _queue += f"`{i}.` **[{track.title}]({track.uri})**" + "\n"
+        return _queue, pages
+
+    def queue_embed(self, page: int = 1):
+        items: list[TTrack] = [i for i in self.queue]
+        _queue, pages = self.queue_string(page, items)
         return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
                 .set_footer(text=f"Page {page}/{pages}"), pages)
+
+    def auto_queue_embed(self, page: int = 1):
+        items: list[TTrack] = [i for i in self.auto_queue]
+        _queue, pages = self.queue_string(page, items)
+        return (discord.Embed(title="Auto-Queue", description=_queue, color=EMBED_COLOR)
+                .set_footer(text=f"Page {page}/{[pages]}"), pages)
+
+    async def populate_auto_queue(self, ctx: Context, track: TTrack):
+        if not self.populate:
+            return
+
+        if track.source == TrackSource.YouTube:
+            query = f'https://www.youtube.com/watch?v={track.identifier}&list=RD{track.identifier}'
+            recos: YouTubePlaylist = await self.current_node.get_playlist(query=query, cls=YouTubePlaylist)
+
+            ctx.bot.dispatch("populate", ctx=ctx, playlist_name=recos.name, playlist_url=query)
+
+            recos: list[YouTubeTrack] = getattr(recos, "tracks", [])
+            queues = set(self.queue) | set(self.auto_queue) | set(self.auto_queue.history) | {track}
+
+            for track_ in recos:
+                if track_ in queues:
+                    continue
+                await self.auto_queue.put_wait(await TTrack.from_track(ctx, track_.data))
+            self.auto_queue.shuffle()
+
+            ctx.bot.dispatch("populate_done", message=self.populate_message)
 
 
 class TTrack(Playable):
@@ -89,7 +123,12 @@ class TTrack(Playable):
         elif source == TrackSource.SoundCloud:
             tracks = await NodePool.get_tracks(query, cls=SoundCloudTrack)
         else:
-            tracks = await NodePool.get_tracks(f"{cls.PREFIX}{query}", cls=cls)
+            tracks = await NodePool.get_tracks(f"{self.PREFIX}{query}", cls=self)
+        return tracks
+
+    @classmethod
+    async def create_track(cls, ctx: Context, query: str, source: int):
+        tracks = await cls.search_tracks(cls, query, source)
 
         if not tracks:
             return None
@@ -166,6 +205,7 @@ class Query:
 
 
 class MusicEmojis:
+    DONE = "✅"
     SKIP = "⏭"
     PLAY = "⏸"
     PAUSE = "▶"
@@ -237,6 +277,20 @@ class MusicCog(commands.Cog):
     async def on_wavelink_track_start(self, payload: TrackEventPayload):
         track: TTrack = payload.original
         await track.ctx_.channel.send(embed=track.track_embed())
+
+    @commands.Cog.listener()
+    async def on_populate(self, ctx: Context, playlist_name: str, playlist_url: str):
+        logger.info(f"Populating: {playlist_url}")
+        player: TPlayer = ctx.guild.voice_client
+        player.populate_message = await ctx.send(embed=discord.Embed(
+            title="Populating auto-queue",
+            description=f"**[{playlist_name}]({playlist_url})**",
+            color=EMBED_COLOR
+        ))
+
+    @commands.Cog.listener()
+    async def on_populate_done(self, message: Message):
+        await message.add_reaction(MusicEmojis.DONE)
 
     async def cog_check(self, ctx: Context[BotT]) -> bool:
         if isinstance(ctx.channel, DMChannel):
@@ -328,7 +382,9 @@ class MusicCog(commands.Cog):
         ))
 
         if not player.is_playing():
-            await player.play(player.queue.get(), populate=True)  # TODO: fix populate not working for TTrack
+            _track: TTrack = player.queue.get()
+            await player.play(_track, populate=True)
+            await player.populate_auto_queue(ctx, _track)
         return
 
     @commands.command(name="queue", aliases=['q'])
@@ -340,6 +396,21 @@ class MusicCog(commands.Cog):
             return await ctx.send("Empty queue!")
         embed, pages = player.queue_embed(1)
         view = PaginationUI(pages, player.queue_embed)
+        msg = await ctx.send(embed=embed, view=view)
+        view.message = msg
+        return
+
+    @commands.command(name="autoqueue", aliases=['autoq', 'aq', 'aqueue'])
+    async def _auto_queue(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.auto_queue.is_empty:
+            return await ctx.send("Empty auto-queue!")
+
+        embed, pages = player.auto_queue_embed(1)
+        view = PaginationUI(pages, player.auto_queue_embed)
         msg = await ctx.send(embed=embed, view=view)
         view.message = msg
         return
