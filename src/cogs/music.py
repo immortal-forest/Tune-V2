@@ -53,7 +53,7 @@ class TPlayer(Player):
         items: list[TTrack] = [i for i in self.auto_queue]
         _queue, pages = self.queue_string(page, items)
         return (discord.Embed(title="Auto-Queue", description=_queue, color=EMBED_COLOR)
-                .set_footer(text=f"Page {page}/{[pages]}"), pages)
+                .set_footer(text=f"Page {page}/{pages}"), pages)
 
     async def populate_auto_queue(self, ctx: Context, track: TTrack):
         if not self.populate:
