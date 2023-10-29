@@ -116,18 +116,19 @@ class TTrack(Playable):
             self.thumb = ("https://cdn.discordapp.com/avatars/980092225960702012/7bd37b51889111531a4ee267d05f48dd.png"
                           "?size=1024")
 
-    async def search_tracks(self, query: str, source: int):
+    @staticmethod
+    async def search_tracks(prefix: str, query: str, source: int):
         if source == TrackSource.YouTube:
             tracks = await NodePool.get_tracks(query, cls=YouTubeTrack)
         elif source == TrackSource.SoundCloud:
             tracks = await NodePool.get_tracks(query, cls=SoundCloudTrack)
         else:
-            tracks = await NodePool.get_tracks(f"{self.PREFIX}{query}", cls=self)
+            tracks = await NodePool.get_tracks(f"{prefix}{query}", cls=TTrack)
         return tracks
 
     @classmethod
     async def create_track(cls, ctx: Context, query: str, source: int):
-        tracks = await cls.search_tracks(cls, query, source)
+        tracks = await cls.search_tracks(cls.PREFIX, query, source)
 
         if not tracks:
             return None
