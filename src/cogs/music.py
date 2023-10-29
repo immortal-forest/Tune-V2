@@ -186,7 +186,9 @@ class Query:
         return await self.parse_single(ctx, query)
 
     async def parse_single(self, ctx, query: str) -> TTrack | None:
-        if "https://" in query and ("youtube" in query or "youtu.be" in query):
+        source = self.query_source(query)
+
+        if source == TrackSource.YouTube:
             query = re.search(VIDEO_REGEX, query).group() or query
 
             if await self.check_video(query):
@@ -195,13 +197,7 @@ class Query:
                 await ctx.send("Invalid YouTube video url")
                 return None
 
-            track = await TTrack.create_track(ctx, query, TrackSource.YouTube)
-
-        elif "soundcloud" in query:
-            track = await TTrack.create_track(ctx, query, TrackSource.SoundCloud)
-
-        else:  # default use YouTube
-            track = await TTrack.create_track(ctx, query, TrackSource.Unknown)
+        track = await TTrack.create_track(ctx, query, source)
 
         if track is None:
             await ctx.send("No track found.")
