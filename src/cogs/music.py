@@ -228,7 +228,7 @@ class PaginationUI(View):
 
     @button(label=MusicEmojis.PREVIOUS, style=ButtonStyle.red)
     async def prev_button_callback(self, interaction: Interaction, button: Button):
-        if self.current == self.pages:
+        if self.current == self.pages == 1:
             return await interaction.response.send_message("No previous page!", delete_after=10)
         await interaction.response.defer()
         if self.current == 1:
@@ -240,7 +240,7 @@ class PaginationUI(View):
 
     @button(label=MusicEmojis.NEXT, style=ButtonStyle.red)
     async def next_button_callback(self, interaction: Interaction, button: Button):
-        if self.current == self.pages:
+        if self.current == self.pages == 1:
             return await interaction.response.send_message("No next page!", delete_after=10)
         await interaction.response.defer()
         if self.current == self.pages:
