@@ -168,6 +168,15 @@ class Query:
                 else:
                     return False
 
+    @staticmethod
+    def query_source(query: str) -> int:
+        if "https://" in query and ("youtube" in query or "youtu.be" in query):
+            return TrackSource.YouTube
+        elif "soundcloud" in query:
+            return TrackSource.SoundCloud
+        else:
+            return TrackSource.Unknown
+
     async def parse_query(self, ctx, query: str) -> TTrack | list[TTrack] | None:
         query = re.sub(r'[<>]', '', query)
         check = yarl.URL(query)
