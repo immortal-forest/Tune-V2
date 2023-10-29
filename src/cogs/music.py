@@ -285,7 +285,7 @@ class MusicCog(commands.Cog):
             title="Populating auto-queue",
             description=f"**[{playlist_name}]({playlist_url})**",
             color=EMBED_COLOR
-        ))
+        ).set_footer(text="Note: Queue takes precedence over Auto-Queue"))
 
     @commands.Cog.listener()
     async def on_populate_done(self, message: Message):
