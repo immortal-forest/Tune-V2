@@ -80,7 +80,7 @@ class TPlayer(Player):
 class TTrack(Playable):
     # default YouTube
     PREFIX = "ytsearch:"
-    PREFIXES = ["ytsearch:", "ytpl:", "ytmsearch:", "scsearch:"]
+    PREFIXES = ["ytsearch:", "ytpl:", "ytmsearch:", "scsearch:"]  # TODO: able to change the prefix
 
     def __init__(self, data: Track):
         super().__init__(data)
