@@ -158,7 +158,8 @@ class TTrack(Playable):
 
 class Query:
 
-    async def check_video(self, _id: str):
+    @staticmethod
+    async def check_video(_id: str):
         url = "https://img.youtube.com/vi/" + _id + "/mqdefault.jpg"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as r:
