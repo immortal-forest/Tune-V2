@@ -53,7 +53,7 @@ class TPlayer(Player):
         items: list[TTrack] = [i for i in self.auto_queue]
         _queue, pages = self.queue_string(page, items)
         return (discord.Embed(title="Auto-Queue", description=_queue, color=EMBED_COLOR)
-                .set_footer(text=f"Page {page}/{[pages]}"), pages)
+                .set_footer(text=f"Page {page}/{pages}"), pages)
 
     async def populate_auto_queue(self, ctx: Context, track: TTrack):
         if not self.populate:
@@ -80,7 +80,7 @@ class TPlayer(Player):
 class TTrack(Playable):
     # default YouTube
     PREFIX = "ytsearch:"
-    PREFIXES = ["ytsearch:", "ytpl:", "ytmsearch:", "scsearch:"]
+    PREFIXES = ["ytsearch:", "ytpl:", "ytmsearch:", "scsearch:"]  # TODO: able to change the prefix
 
     def __init__(self, data: Track):
         super().__init__(data)
@@ -116,18 +116,19 @@ class TTrack(Playable):
             self.thumb = ("https://cdn.discordapp.com/avatars/980092225960702012/7bd37b51889111531a4ee267d05f48dd.png"
                           "?size=1024")
 
-    async def search_tracks(self, query: str, source: int):
+    @staticmethod
+    async def search_tracks(prefix: str, query: str, source: int):
         if source == TrackSource.YouTube:
             tracks = await NodePool.get_tracks(query, cls=YouTubeTrack)
         elif source == TrackSource.SoundCloud:
             tracks = await NodePool.get_tracks(query, cls=SoundCloudTrack)
         else:
-            tracks = await NodePool.get_tracks(f"{self.PREFIX}{query}", cls=self)
+            tracks = await NodePool.get_tracks(f"{prefix}{query}", cls=YouTubeTrack)
         return tracks
 
     @classmethod
     async def create_track(cls, ctx: Context, query: str, source: int):
-        tracks = await cls.search_tracks(cls, query, source)
+        tracks = await cls.search_tracks(cls.PREFIX, query, source)
 
         if not tracks:
             return None
@@ -157,7 +158,8 @@ class TTrack(Playable):
 
 class Query:
 
-    async def check_video(self, _id: str):
+    @staticmethod
+    async def check_video(_id: str):
         url = "https://img.youtube.com/vi/" + _id + "/mqdefault.jpg"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as r:
@@ -165,6 +167,15 @@ class Query:
                     return True
                 else:
                     return False
+
+    @staticmethod
+    def query_source(query: str) -> int:
+        if "https://" in query and ("youtube" in query or "youtu.be" in query):
+            return TrackSource.YouTube
+        elif "soundcloud" in query:
+            return TrackSource.SoundCloud
+        else:
+            return TrackSource.Unknown
 
     async def parse_query(self, ctx, query: str) -> TTrack | list[TTrack] | None:
         query = re.sub(r'[<>]', '', query)
@@ -175,7 +186,9 @@ class Query:
         return await self.parse_single(ctx, query)
 
     async def parse_single(self, ctx, query: str) -> TTrack | None:
-        if "https://" in query and ("youtube" in query or "youtu.be" in query):
+        source = self.query_source(query)
+
+        if source == TrackSource.YouTube:
             query = re.search(VIDEO_REGEX, query).group() or query
 
             if await self.check_video(query):
@@ -184,13 +197,7 @@ class Query:
                 await ctx.send("Invalid YouTube video url")
                 return None
 
-            track = await TTrack.create_track(ctx, query, TrackSource.YouTube)
-
-        elif "soundcloud" in query:
-            track = await TTrack.create_track(ctx, query, TrackSource.SoundCloud)
-
-        else:  # default use YouTube
-            track = await TTrack.create_track(ctx, query, TrackSource.Unknown)
+        track = await TTrack.create_track(ctx, query, source)
 
         if track is None:
             await ctx.send("No track found.")
@@ -228,7 +235,7 @@ class PaginationUI(View):
 
     @button(label=MusicEmojis.PREVIOUS, style=ButtonStyle.red)
     async def prev_button_callback(self, interaction: Interaction, button: Button):
-        if self.current == self.pages:
+        if self.current == self.pages == 1:
             return await interaction.response.send_message("No previous page!", delete_after=10)
         await interaction.response.defer()
         if self.current == 1:
@@ -240,7 +247,7 @@ class PaginationUI(View):
 
     @button(label=MusicEmojis.NEXT, style=ButtonStyle.red)
     async def next_button_callback(self, interaction: Interaction, button: Button):
-        if self.current == self.pages:
+        if self.current == self.pages == 1:
             return await interaction.response.send_message("No next page!", delete_after=10)
         await interaction.response.defer()
         if self.current == self.pages:
@@ -285,7 +292,7 @@ class MusicCog(commands.Cog):
             title="Populating auto-queue",
             description=f"**[{playlist_name}]({playlist_url})**",
             color=EMBED_COLOR
-        ))
+        ).set_footer(text="Note: Queue takes precedence over Auto-Queue"))
 
     @commands.Cog.listener()
     async def on_populate_done(self, message: Message):
