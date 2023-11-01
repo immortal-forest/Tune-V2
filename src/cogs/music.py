@@ -123,7 +123,7 @@ class TTrack(Playable):
         elif source == TrackSource.SoundCloud:
             tracks = await NodePool.get_tracks(query, cls=SoundCloudTrack)
         else:
-            tracks = await NodePool.get_tracks(f"{prefix}{query}", cls=TTrack)
+            tracks = await NodePool.get_tracks(f"{prefix}{query}", cls=YouTubeTrack)
         return tracks
 
     @classmethod
