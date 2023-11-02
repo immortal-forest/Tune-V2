@@ -76,6 +76,11 @@ class TPlayer(Player):
 
             ctx.bot.dispatch("populate_done", message=self.populate_message)
 
+    async def start_player(self):
+        if not self.is_playing():
+            _track: TTrack = self.queue.get()
+            await self.play(_track, populate=True)
+
 
 class TTrack(Playable):
     # default YouTube
