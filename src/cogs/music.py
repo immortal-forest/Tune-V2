@@ -393,9 +393,8 @@ class MusicCog(commands.Cog):
         ))
 
         if not player.is_playing():
-            _track: TTrack = player.queue.get()
-            await player.play(_track, populate=True)
-            await player.populate_auto_queue(ctx, _track)
+            await player.start_player()
+            await player.populate_auto_queue(ctx, player.current)
         return
 
     @commands.command(name="queue", aliases=['q'])
