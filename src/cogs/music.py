@@ -76,6 +76,11 @@ class TPlayer(Player):
 
             ctx.bot.dispatch("populate_done", message=self.populate_message)
 
+    async def start_player(self):
+        if not self.is_playing():
+            _track: TTrack = self.queue.get()
+            await self.play(_track, populate=True)
+
 
 class TTrack(Playable):
     # default YouTube
@@ -388,9 +393,8 @@ class MusicCog(commands.Cog):
         ))
 
         if not player.is_playing():
-            _track: TTrack = player.queue.get()
-            await player.play(_track, populate=True)
-            await player.populate_auto_queue(ctx, _track)
+            await player.start_player()
+            await player.populate_auto_queue(ctx, player.current)
         return
 
     @commands.command(name="queue", aliases=['q'])
