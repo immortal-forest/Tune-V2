@@ -392,9 +392,8 @@ class MusicCog(commands.Cog):
             color=EMBED_COLOR
         ))
 
-        if not player.is_playing():
-            await player.start_player()
-            await player.populate_auto_queue(ctx, player.current)
+        await player.populate_auto_queue(ctx, player.current)
+        await player.start_player()
         return
 
     @commands.command(name="queue", aliases=['q'])
