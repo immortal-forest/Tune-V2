@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import yarl
+import asyncio
 import aiohttp
 from typing import Union
 from logging import getLogger
@@ -12,7 +13,7 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands._types import BotT
-from discord import Member, VoiceState, DMChannel, Guild, ButtonStyle, Interaction, Message
+from discord import Member, VoiceState, DMChannel, Guild, ButtonStyle, Interaction, Message, Reaction, User
 
 from discord.ui import View, Button, button
 
@@ -226,6 +227,16 @@ class MusicEmojis:
     REMOVED = "➖"
 
 
+class MusicUtils:
+    SEARCH_OPTIONS = {
+        "1️⃣": 0,
+        "2️⃣": 1,
+        "3️⃣": 2,
+        "4️⃣": 3,
+        "5️⃣": 4
+    }
+
+
 class PaginationUI(View):
     def __init__(self, pages: int, func):
         super().__init__(timeout=60 * 2)
@@ -395,6 +406,54 @@ class MusicCog(commands.Cog):
         await player.populate_auto_queue(ctx, player.current)
         await player.start_player()
         return
+
+    async def search_to_queue(self, ctx: Context, message: Message, tracks, size: int):
+        def _check_reaction(rxn: Reaction, user: Member | User):
+            return not (not (rxn.emoji in MusicUtils.SEARCH_OPTIONS.keys()) or not (
+                        user == ctx.message.author) or not (rxn.message.id == message.id))
+
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC. Can't add tracks to the queue.")
+
+        for rxn in list(MusicUtils.SEARCH_OPTIONS.keys())[:size]:
+            await message.add_reaction(rxn)
+
+        try:
+            reaction, _ = await self.bot.wait_for("reaction_add", timeout=60.0, check=_check_reaction)
+        except asyncio.Timeout:
+            await ctx.send("Reaction timed out!", delete_after=5)
+            await message.clear_reactions()
+        else:
+            track = tracks[:size][MusicUtils.SEARCH_OPTIONS[reaction.emoji]]
+            await message.clear_reactions()
+            await player.queue.put_wait(await TTrack.from_track(ctx, track.data))
+            await ctx.send(embed=discord.Embed(
+                title="Enqueued a track!",
+                description=f"**[{track.title}]({track.uri})**",
+                color=EMBED_COLOR
+            ))
+            await player.start_player()
+
+    @commands.command(name="search", aliases=['s'])
+    async def _search(self, ctx: Context, *, query: str):
+        source = Query.query_source(query)
+        tracks = await TTrack.search_tracks(TTrack.PREFIX, query, source)
+        if not tracks:
+            return await ctx.send("No tracks found.")
+
+        _track = ''
+        size = min(len(tracks), len(MusicUtils.SEARCH_OPTIONS.keys()))
+        for i, track in enumerate(tracks[:size], start=1):
+            _track += f"`{i}.` **[{track.title}]({track.uri})**" + "\n"
+
+        message = await ctx.send(embed=discord.Embed(
+            title="Tracks found",
+            description=_track,
+            color=EMBED_COLOR
+        ))
+
+        await self.bot.loop.create_task(self.search_to_queue(ctx, message, tracks, size))
 
     @commands.command(name="queue", aliases=['q'])
     async def _queue(self, ctx: Context):
