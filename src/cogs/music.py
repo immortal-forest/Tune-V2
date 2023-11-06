@@ -29,7 +29,7 @@ class TPlayer(Player):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.autoplay = True
-        self.populate = True
+        self.populate = False
 
     async def destroy(self):
         if self.is_connected():
@@ -424,6 +424,19 @@ class MusicCog(commands.Cog):
         msg = await ctx.send(embed=embed, view=view)
         view.message = msg
         return
+
+    @commands.command(name="populate", aliases=['eaq', 'enableautoqueue'])
+    async def _populate(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        player.populate = not player.populate
+
+        return await ctx.send(embed=discord.Embed(
+            title=("Enabled" if player.populate else "Disabled")+ " Auto-Queue",
+            color=EMBED_COLOR
+        ))
 
     @commands.command(name="skip", aliases=['next', 'n'])
     async def _skip(self, ctx: Context):
