@@ -411,7 +411,8 @@ class MusicCog(commands.Cog):
             ))
 
         await player.populate_auto_queue(ctx, player.current)
-        await player.start_player()
+        if not player.is_paused():
+            await player.start_player()
         return
 
     async def search_to_queue(self, ctx: Context, message: Message, tracks, size: int):
