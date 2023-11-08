@@ -498,7 +498,7 @@ class MusicCog(commands.Cog):
         player.populate = not player.populate
 
         return await ctx.send(embed=discord.Embed(
-            title=("Enabled" if player.populate else "Disabled")+ " Auto-Queue",
+            title=("Enabled" if player.populate else "Disabled") + " Auto-Queue",
             color=EMBED_COLOR
         ))
 
