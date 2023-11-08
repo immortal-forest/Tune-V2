@@ -37,7 +37,7 @@ class TPlayer(Player):
             await self.disconnect()
         await self._destroy()
 
-    def queue_string(self, page: int, items: list[TTrack]):
+    def item_string(self, page: int, items: list[TTrack]):
         start, end, pages = paginate_items(items, page)
         _queue = ''
         for i, track in enumerate(items[start:end], start=start + 1):
@@ -46,14 +46,20 @@ class TPlayer(Player):
 
     def queue_embed(self, page: int = 1):
         items: list[TTrack] = [i for i in self.queue]
-        _queue, pages = self.queue_string(page, items)
+        _queue, pages = self.item_string(page, items)
         return (discord.Embed(title="Queue", description=_queue, color=EMBED_COLOR)
                 .set_footer(text=f"Page {page}/{pages}"), pages)
 
     def auto_queue_embed(self, page: int = 1):
         items: list[TTrack] = [i for i in self.auto_queue]
-        _queue, pages = self.queue_string(page, items)
+        _queue, pages = self.item_string(page, items)
         return (discord.Embed(title="Auto-Queue", description=_queue, color=EMBED_COLOR)
+                .set_footer(text=f"Page {page}/{pages}"), pages)
+
+    def history_embed(self, page: int = 1):
+        items: list[TTrack] = [i for i in self.queue.history]
+        _queue, pages = self.item_string(page, items)
+        return (discord.Embed(title="History", description=_queue, color=EMBED_COLOR)
                 .set_footer(text=f"Page {page}/{pages}"), pages)
 
     async def populate_auto_queue(self, ctx: Context, track: TTrack):
