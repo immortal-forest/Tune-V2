@@ -391,23 +391,24 @@ class MusicCog(commands.Cog):
         if not player:
             return
 
-        tracks = await Query().parse_query(ctx, query)
-        if isinstance(tracks, list):
-            for track in tracks:
-                await player.queue.put_wait(track)
-            desc = f"**Playlist {len(tracks)}**"  # TODO: playlist name from TPlaylistTrack
-        elif isinstance(tracks, TTrack):
-            await player.queue.put_wait(tracks)
-            desc = f"**[{tracks.title}]({tracks.uri})**"
-        else:
-            return
+        async with ctx.typing():
+            tracks = await Query().parse_query(ctx, query)
+            if isinstance(tracks, list):
+                for track in tracks:
+                    await player.queue.put_wait(track)
+                desc = f"**Playlist {len(tracks)}**"  # TODO: playlist name from TPlaylistTrack
+            elif isinstance(tracks, TTrack):
+                await player.queue.put_wait(tracks)
+                desc = f"**[{tracks.title}]({tracks.uri})**"
+            else:
+                return
 
-        await ctx.message.add_reaction(MusicEmojis.ADDED)
-        await ctx.send(embed=discord.Embed(
-            title="Enqueued a track!",
-            description=desc,
-            color=EMBED_COLOR
-        ))
+            await ctx.message.add_reaction(MusicEmojis.ADDED)
+            await ctx.send(embed=discord.Embed(
+                title="Enqueued a track!",
+                description=desc,
+                color=EMBED_COLOR
+            ))
 
         await player.populate_auto_queue(ctx, player.current)
         await player.start_player()
