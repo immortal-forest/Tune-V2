@@ -461,6 +461,21 @@ class MusicCog(commands.Cog):
 
         await self.bot.loop.create_task(self.search_to_queue(ctx, message, tracks, size))
 
+    @commands.command(name="history", aliases=['h'])
+    async def _history(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        if player.queue.history.is_empty:
+            return await ctx.send("Empty history. Play something to see it here.")
+
+        embed, pages = player.history_embed(1)
+        view = PaginationUI(pages, player.history_embed)
+        msg = await ctx.send(embed=embed, view=view)
+        view.message = msg
+        return
+
     @commands.command(name="queue", aliases=['q'])
     async def _queue(self, ctx: Context):
         player: TPlayer = ctx.guild.voice_client
