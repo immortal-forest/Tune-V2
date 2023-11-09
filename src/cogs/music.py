@@ -118,6 +118,22 @@ class TTrack(Playable):
 
         return ', '.join(duration)
 
+    @staticmethod
+    def parse_duration_fmt(duration):
+        minutes, seconds = divmod(duration, 60)
+        hours, minutes = divmod(minutes, 60)
+        days, hours = divmod(hours, 24)
+
+        days, hours, minutes, seconds = list(map(int, (days, hours, minutes, seconds)))
+
+        fmt = f"{minutes:02}:{seconds:02}"
+        if hours > 0:
+            fmt = f"{hours:02}:" + fmt
+        if days > 0:
+            fmt = f"{days:02}:" + fmt
+
+        return fmt
+
     async def fetch_thumbnail(self):
         if self.source == TrackSource.YouTube:
             self.thumb = await YouTubeTrack.fetch_thumbnail(self)
