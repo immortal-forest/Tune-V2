@@ -631,10 +631,9 @@ class MusicCog(commands.Cog):
 
         pos = position * 1000  # convert to millisecond
         await player.seek(pos)
-        suffix = "secs" if position > 1 else "sec"
         return await ctx.send(embed=discord.Embed(
-            title="Skipped",
-            description=f"**`{position} {suffix}`**",
+            title="Player position",
+            description=f"**`{TTrack.parse_duration_fmt(position)}`**",
             color=EMBED_COLOR
         ))
 
