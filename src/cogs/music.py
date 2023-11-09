@@ -759,6 +759,37 @@ class MusicCog(commands.Cog):
             color=EMBED_COLOR
         ))
 
+    @commands.command(name="playerstatus", aliases=['ps'])
+    async def _player_status(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return await ctx.send("Not connected to a VC.")
+
+        queue_len = len(player.queue)
+        history_len = len(player.queue.history)
+        ping = player.ping
+        vol = player.volume
+        if player.is_playing():
+            status = "**Playing**"
+        elif player.is_paused():
+            status = "**Paused**"
+        else:
+            status = "**Idling**"
+        current: TTrack = player.current or None
+        embed = (discord.Embed(
+            title="Player Stats",
+            color=EMBED_COLOR
+        )
+                 .add_field(name="Status", value=status)
+                 .add_field(name="Volume", value=vol)
+                 .add_field(name="", value="", inline=False)
+                 .add_field(name="In-Queue", value=queue_len)
+                 .add_field(name="History", value=history_len)
+                 .add_field(name="Latency", value=f"{ping:.2f} ms", inline=False))
+        if current is not None:
+            embed.insert_field_at(0, name="Current", value=f"[{current.title}]({current.uri})", inline=False)
+        return await ctx.send(embed=embed)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
