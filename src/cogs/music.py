@@ -711,7 +711,7 @@ class MusicCog(commands.Cog):
             await ctx.send(embed=discord.Embed(
                 title="Looping the queue",
                 color=EMBED_COLOR
-            ))
+            ).set_footer(text="Note: Tracks will be played from history if queue is empty."))
         else:
             await ctx.send(embed=discord.Embed(
                 title="Disabled queue looping",
