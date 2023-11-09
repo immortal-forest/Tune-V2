@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import os
 import yarl
 import asyncio
 import aiohttp
@@ -346,7 +347,11 @@ class MusicCog(commands.Cog):
         await self.start_nodes()
 
     async def start_nodes(self):
-        node = Node(uri='http://localhost:2333', password='youshallnotpass')
+        host = os.environ['LL_HOST']
+        port = os.environ['LL_PORT']
+        password = os.environ['LL_PASSWORD']
+        secure = bool(int(os.getenv("LL_SECURE", False)))  # number: 0 or 1
+        node = Node(uri=f'http://{host}:{port}', password=password, secure=secure)
         await NodePool.connect(client=self.bot, nodes=[node])
 
     def get_player(self, idf: Union[Context, Guild]) -> TPlayer | None:
