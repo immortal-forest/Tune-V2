@@ -85,9 +85,9 @@ class TPlayer(Player):
             ctx.bot.dispatch("populate_done", message=self.populate_message)
 
     async def start_player(self):
-        if not self.is_playing():
+        if not self.is_playing() and not self.is_paused():
             _track: TTrack = self.queue.get()
-            await self.play(_track, populate=True)
+            await self.play(_track, populate=self.populate)
 
 
 class TTrack(Playable):
@@ -432,8 +432,7 @@ class MusicCog(commands.Cog):
             ))
 
         await player.populate_auto_queue(ctx, player.current)
-        if not player.is_paused():
-            await player.start_player()
+        await player.start_player()
         return
 
     async def search_to_queue(self, ctx: Context, message: Message, tracks, size: int):
