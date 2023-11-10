@@ -2,7 +2,7 @@ import logging
 from logging import handlers
 
 
-def discord_logger(file_path: str = "./logs/discord.log", log_level: int = logging.INFO):
+def discord_logger(file_path: str = "./logs/discord.log", log_level: int | str = logging.INFO):
     discordLogger = logging.getLogger("discord")
     discordLogger.propagate = False
     discordLogger.setLevel(log_level)
