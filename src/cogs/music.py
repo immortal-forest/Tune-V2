@@ -297,8 +297,7 @@ class PaginationUI(View):
         await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
 
 
-class MusicCog(commands.Cog):
-    __cog_name__ = "Music"
+class MusicCog(commands.Cog, name='Music'):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
