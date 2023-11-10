@@ -5,7 +5,7 @@ from src import Tune, discord_logger
 
 def main():
     load_dotenv()
-    discord_logger(os.environ['LOG_PATH'], int(os.environ['LOG_LEVEL']))
+    discord_logger()
     bot = Tune()
     bot.tune()
 
