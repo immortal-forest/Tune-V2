@@ -16,7 +16,6 @@ async def create_pool(dsn, dbname: str):
         await conn.close()
     pool = await asyncpg.create_pool(dsn, database=dbname)
     async with pool.acquire() as connection:
-        print("INIT DB")
         await connection.execute(
             sql.CREATE_PLAYLISTS
         )
