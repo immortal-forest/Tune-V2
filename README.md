@@ -3,7 +3,8 @@
 
 Rewrite of [Tune](https://github.com/Salman-Git-Hub/Tune) a Discord Music Bot.
 
-
-![Tune](https://github.com/immortal-forest/Tune-V2/blob/assets/social-preview-dark.png?raw=true#gh-dark-mode-only)
-![Tune](https://github.com/immortal-forest/Tune-V2/blob/assets/social-preview-light.png?raw=true#gh-light-mode-only)
-
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/../assets/banner-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="/../assets/banner-light.png">
+  <img src="/../assets/logo.png">
+</picture>
