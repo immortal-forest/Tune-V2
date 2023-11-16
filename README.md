@@ -1,7 +1,10 @@
-# Tune-V2
+# <img src="https://github.com/immortal-forest/Tune-V2/blob/assets/logo.png?raw=true"> Tune-V2
 
-Discord music bot written in Python.
 
-![Tune](logo.png)
+Rewrite of [Tune](https://github.com/Salman-Git-Hub/Tune) a Discord Music Bot.
 
-Rewrite of [Tune](https://github.com/Salman-Git-Hub/Tune) using [WaveLink](https://github.com/PythonistaGuild/Wavelink)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/../assets/banner-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="/../assets/banner-light.png">
+  <img src="/../assets/logo.png">
+</picture>
