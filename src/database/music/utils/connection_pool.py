@@ -1,22 +1,14 @@
 import asyncpg
-from .. import sql
-
 from logging import getLogger
+
+from .database_checks import *
+from .. import sql
 
 log = getLogger("discord")
 
 
-async def check_database_exists(dsn, dbname: str):
-    async with asyncpg.connect(dsn) as conn:
-        exists = await conn.fetchval(
-            "SELECT 1 FROM pg_database WHERE datname = $1;",
-            dbname
-        )
-        return exists == 1
-
-
 async def create_pool(dsn, dbname: str):
-    exists = await check_database_exists(dsn, dbname)
+    exists = await check_database(dsn, dbname)
     if not exists:
         try:
             # creating database
