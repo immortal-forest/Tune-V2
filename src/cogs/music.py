@@ -4,6 +4,7 @@ import re
 import os
 import yarl
 import asyncio
+import asyncpg
 import aiohttp
 from typing import Union
 from logging import getLogger
@@ -32,6 +33,7 @@ class TPlayer(Player):
         super().__init__(*args, **kwargs)
         self.autoplay = True
         self.populate = False
+        self.pool: asyncpg.Pool = None
 
     async def destroy(self):
         if self.is_connected():
