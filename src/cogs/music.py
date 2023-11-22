@@ -9,6 +9,7 @@ import aiohttp
 from typing import Union
 from logging import getLogger
 from ..utils import paginate_items
+from ..database.music.utils import create_pool
 from StringProgressBar import progressBar
 
 import discord
@@ -361,6 +362,18 @@ class MusicCog(commands.Cog, name='Music'):
             return node.get_player(idf.guild.id)
         elif isinstance(idf, Guild):
             return node.get_player(idf.id)
+
+    async def ensure_pool(self, ctx: Context):
+        vc: TPlayer = ctx.guild.voice_client
+        if not vc:
+            return
+        try:
+            vc.pool = await create_pool(
+                    os.environ['DB_URL'],
+                    f"guild_{ctx.guild.id}"
+            )
+        except asyncpg.PostgresError:
+            return await ctx.send("Couldn't connect to the database", delete_after=5)
 
     @commands.command(name="join", aliases=["connect", 'c', 'j'])
     async def _join(self, ctx: Context):
