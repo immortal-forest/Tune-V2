@@ -403,7 +403,7 @@ class MusicCog(commands.Cog, name='Music'):
             color=EMBED_COLOR
         ))
 
-    @commands.command(name="leave", aliases=['disconnect', 'd', 'l'])
+    @commands.command(name="leave", aliases=['disconnect', 'd', 'l', 'stop'])
     async def _leave(self, ctx: Context):
         vc: TPlayer = ctx.voice_client
 
