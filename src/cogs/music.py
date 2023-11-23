@@ -368,12 +368,15 @@ class MusicCog(commands.Cog, name='Music'):
         if not vc:
             return
         try:
-            vc.pool = await create_pool(
-                    os.environ['DB_URL'],
-                    f"guild_{ctx.guild.id}"
-            )
+            if vc.pool is None:
+                vc.pool = await create_pool(
+                        os.environ['DB_URL'],
+                        f"guild_{ctx.guild.id}"
+                )
+            return True
         except asyncpg.PostgresError:
-            return await ctx.send("Couldn't connect to the database", delete_after=5)
+            await ctx.send("Couldn't connect to the database", delete_after=5)
+            return False
 
     @commands.command(name="join", aliases=["connect", 'c', 'j'])
     async def _join(self, ctx: Context):
@@ -389,6 +392,7 @@ class MusicCog(commands.Cog, name='Music'):
 
         if not vc:
             await channel.connect(cls=TPlayer)
+            await self.ensure_pool(ctx)
         elif vc.channel == channel:
             return await ctx.send("Bot is already in VC.", delete_after=5)
         else:
