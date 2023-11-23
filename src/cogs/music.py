@@ -315,6 +315,7 @@ class MusicCog(commands.Cog, name='Music'):
                     return
                 await vc.disconnect()
                 await vc.destroy()
+                await vc.pool.close()
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: Node):
@@ -414,6 +415,7 @@ class MusicCog(commands.Cog, name='Music'):
             vc.queue.reset()
             await vc.disconnect()
             await vc.destroy()
+            await vc.pool.close()
         else:
             await ctx.send(embed=discord.Embed(
                 title="You're not connected to any VC",
