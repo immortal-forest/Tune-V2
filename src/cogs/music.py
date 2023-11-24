@@ -92,6 +92,18 @@ class TPlayer(Player):
             _track: TTrack = self.queue.get()
             await self.play(_track, populate=self.populate)
 
+    async def player_pool(self):
+        try:
+            if self.pool is None:
+                self.pool = await create_pool(
+                    os.environ['DB_URL'],
+                    f"guild_{self.guild.id}"
+                )
+        except asyncpg.PostgresError:
+            pass
+        finally:
+            return self.pool
+
 
 class TTrack(Playable):
     # default YouTube
@@ -364,21 +376,6 @@ class MusicCog(commands.Cog, name='Music'):
         elif isinstance(idf, Guild):
             return node.get_player(idf.id)
 
-    async def ensure_pool(self, ctx: Context):
-        vc: TPlayer = ctx.guild.voice_client
-        if not vc:
-            return
-        try:
-            if vc.pool is None:
-                vc.pool = await create_pool(
-                        os.environ['DB_URL'],
-                        f"guild_{ctx.guild.id}"
-                )
-            return True
-        except asyncpg.PostgresError:
-            await ctx.send("Couldn't connect to the database", delete_after=5)
-            return False
-
     @commands.command(name="join", aliases=["connect", 'c', 'j'])
     async def _join(self, ctx: Context):
         vc: TPlayer = ctx.guild.voice_client
@@ -392,8 +389,8 @@ class MusicCog(commands.Cog, name='Music'):
             ), delete_after=5)
 
         if not vc:
-            await channel.connect(cls=TPlayer)
-            await self.ensure_pool(ctx)
+            vc = await channel.connect(cls=TPlayer)
+            await vc.player_pool()
         elif vc.channel == channel:
             return await ctx.send("Bot is already in VC.", delete_after=5)
         else:
