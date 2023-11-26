@@ -66,8 +66,8 @@ class TPlayer(Player):
         return (discord.Embed(title="History", description=_queue, color=EMBED_COLOR)
                 .set_footer(text=f"Page {page}/{pages}"), pages)
 
-    async def populate_auto_queue(self, ctx: Context, track: TTrack):
-        if not self.populate:
+    async def populate_auto_queue(self, ctx: Context, track: TTrack | None):
+        if not self.populate or track is None:
             return
 
         if track.source == TrackSource.YouTube:
@@ -435,9 +435,11 @@ class MusicCog(commands.Cog, name='Music'):
                 for track in tracks:
                     await player.queue.put_wait(track)
                 desc = f"**Playlist {len(tracks)}**"  # TODO: playlist name from TPlaylistTrack
+                _populate = False
             elif isinstance(tracks, TTrack):
                 await player.queue.put_wait(tracks)
                 desc = f"**[{tracks.title}]({tracks.uri})**"
+                _populate = True
             else:
                 return
 
@@ -448,7 +450,7 @@ class MusicCog(commands.Cog, name='Music'):
                 color=EMBED_COLOR
             ))
 
-        await player.populate_auto_queue(ctx, player.current)
+            await player.populate_auto_queue(ctx, tracks if _populate else None)
         await player.start_player()
         return
 
