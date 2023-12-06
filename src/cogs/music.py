@@ -108,7 +108,11 @@ class TPlayer(Player):
 class TTrack(Playable):
     # default YouTube
     PREFIX = "ytsearch:"
-    PREFIXES = ["ytsearch:", "ytpl:", "ytmsearch:", "scsearch:"]  # TODO: able to change the prefix
+    PREFIXES = ["ytsearch:", "scsearch:"]  # TODO: able to change the prefix
+    _prefix_mapping = {
+        "ytsearch:": YouTubeTrack,
+        "scsearch:": SoundCloudTrack
+    }
 
     def __init__(self, data: Track):
         super().__init__(data)
@@ -167,7 +171,7 @@ class TTrack(Playable):
         elif source == TrackSource.SoundCloud:
             tracks = await NodePool.get_tracks(query, cls=SoundCloudTrack)
         else:
-            tracks = await NodePool.get_tracks(f"{prefix}{query}", cls=YouTubeTrack)
+            tracks = await NodePool.get_tracks(f"{prefix}{query}", cls=TTrack._prefix_mapping[prefix])
         return tracks
 
     @classmethod
