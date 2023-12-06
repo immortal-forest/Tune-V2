@@ -114,11 +114,11 @@ class TTrack(Playable):
         "scsearch:": SoundCloudTrack
     }
 
-    def __init__(self, data: Track):
+    def __init__(self, data: Track, ctx: Context):
         super().__init__(data)
         self.thumb = None
         self.parsed_duration: str = self.parse_duration(self.length / 1000)
-        self.ctx_: Context | None = None
+        self.ctx_: Context = ctx
 
     @staticmethod
     def parse_duration(duration):
@@ -163,6 +163,7 @@ class TTrack(Playable):
         else:
             self.thumb = ("https://cdn.discordapp.com/avatars/980092225960702012/7bd37b51889111531a4ee267d05f48dd.png"
                           "?size=1024")
+        return self.thumb
 
     @staticmethod
     async def search_tracks(prefix: str, query: str, source: int):
@@ -180,19 +181,10 @@ class TTrack(Playable):
 
         if not tracks:
             return None
-        track = cls(tracks[0].data)
-        track.ctx_ = ctx
-        await track.fetch_thumbnail()
-        return track
 
-    @classmethod
-    async def from_track(cls, ctx: Context, data: Track):
-        _cls = cls(data)
-        await _cls.fetch_thumbnail()
-        _cls.ctx_ = ctx
-        return _cls
+        return cls(tracks[0].data, ctx)
 
-    def track_embed(self):
+    async def track_embed(self):
         return (discord.Embed(
             title="Now Playing!",
             description=f"[{self.title}]({self.uri})",
@@ -201,7 +193,7 @@ class TTrack(Playable):
                 .add_field(name="Duration", value=self.parsed_duration, inline=False)
                 .add_field(name="Requested by", value=self.ctx_.author.mention, inline=False)
                 .add_field(name="Uploader", value=self.author)
-                .set_thumbnail(url=self.thumb))
+                .set_thumbnail(url=await self.fetch_thumbnail()))
 
 
 class Query:
@@ -340,7 +332,7 @@ class MusicCog(commands.Cog, name='Music'):
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackEventPayload):
         track: TTrack = payload.original
-        await track.ctx_.channel.send(embed=track.track_embed())
+        await track.ctx_.channel.send(embed=await track.track_embed())
 
     @commands.Cog.listener()
     async def on_populate(self, ctx: Context, playlist_name: str, playlist_url: str):
@@ -670,7 +662,7 @@ class MusicCog(commands.Cog, name='Music'):
 
         current: TTrack = player.current
         played = int(player.position / 1000)
-        embed = current.track_embed()
+        embed = await current.track_embed()
         embed.insert_field_at(index=1, name="Played", value=TTrack.parse_duration(played), inline=False)
         progress_bar = progressBar.splitBar(int(current.duration / 1000), played, size=12)[0]
         embed.insert_field_at(index=2, name="", value=progress_bar, inline=False)
