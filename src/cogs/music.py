@@ -209,7 +209,7 @@ class Query:
                     return False
 
     @staticmethod
-    def query_source(query: str) -> int:
+    def track_source(query: str) -> int:
         if "https://" in query and ("youtube" in query or "youtu.be" in query):
             return TrackSource.YouTube
         elif "soundcloud" in query:
@@ -226,7 +226,7 @@ class Query:
         return await self.parse_single(ctx, query)
 
     async def parse_single(self, ctx, query: str) -> TTrack | None:
-        source = self.query_source(query)
+        source = self.track_source(query)
 
         if source == TrackSource.YouTube:
             query = re.search(VIDEO_REGEX, query).group() or query
@@ -480,7 +480,7 @@ class MusicCog(commands.Cog, name='Music'):
 
     @commands.command(name="search", aliases=['s'])
     async def _search(self, ctx: Context, *, query: str):
-        source = Query.query_source(query)
+        source = Query.track_source(query)
         tracks = await TTrack.search_tracks(TTrack.PREFIX, query, source)
         if not tracks:
             return await ctx.send("No tracks found.")
