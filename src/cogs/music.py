@@ -225,7 +225,7 @@ class Query:
             return await self.parse_playlist(ctx, query)
         return await self.parse_single(ctx, query)
 
-    async def parse_single(self, ctx, query: str) -> TTrack | None:
+    async def parse_track(self, ctx, query: str) -> TTrack | None:
         source = self.track_source(query)
 
         if source == TrackSource.YouTube:
