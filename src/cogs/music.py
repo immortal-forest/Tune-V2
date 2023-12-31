@@ -210,7 +210,7 @@ class Query:
 
     @staticmethod
     def track_source(query: str) -> int:
-        if "https://" in query and ("youtube" in query or "youtu.be" in query):
+        if "youtube" in query or "youtu.be" in query:
             return TrackSource.YouTube
         elif "soundcloud" in query:
             return TrackSource.SoundCloud
