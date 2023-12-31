@@ -223,7 +223,7 @@ class Query:
         # YouTube or SoundCloud Playlist
         if check.query.get("list") or "sets" in check.parts:
             return await self.parse_playlist(ctx, query)
-        return await self.parse_single(ctx, query)
+        return await self.parse_track(ctx, query)
 
     async def parse_track(self, ctx, query: str) -> TTrack | None:
         source = self.track_source(query)
