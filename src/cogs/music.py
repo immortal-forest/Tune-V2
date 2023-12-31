@@ -21,8 +21,8 @@ from discord import Member, VoiceState, DMChannel, Guild, ButtonStyle, Interacti
 from discord.ui import View, Button, button
 
 from wavelink.types.track import Track
-from wavelink import (Node, NodePool, Player, Playable, TrackSource, TrackEventPayload,
-                      YouTubeTrack, SoundCloudTrack, YouTubePlaylist)
+from wavelink import (Node, NodePool, Player, Playable, Playlist, TrackSource, TrackEventPayload,
+                      YouTubeTrack, SoundCloudTrack, YouTubePlaylist, SoundCloudPlaylist)
 
 logger = getLogger("discord")
 EMBED_COLOR = discord.Color.magenta()
@@ -194,6 +194,52 @@ class TTrack(Playable):
                 .add_field(name="Requested by", value=self.ctx_.author.mention, inline=False)
                 .add_field(name="Uploader", value=self.author)
                 .set_thumbnail(url=await self.fetch_thumbnail()))
+
+
+class TPlaylist(Playlist):
+
+    def __init__(self, data: dict):
+        super().__init__(data)
+        self.name: str = data['name']
+        self.tracks: list[TTrack] = data['tracks']
+        self.source: int = data['source']
+
+    @staticmethod
+    async def search_playlist(query: str, source: TrackSource) -> Playlist:
+        """
+        Searches for playlist either online or local
+
+        :param query: Playlist name or url
+        :param source: wavelink TrackSource
+        :return:
+        """
+        # TODO: support for database
+        if source == TrackSource.Local:
+            raise NotImplemented("DB not supported yet.")
+        playlist = await NodePool.get_playlist(query if "https://" in query else f"ytpl:{query}", cls=Playlist)
+        return playlist
+
+    @classmethod
+    async def create_playlist(cls, ctx: Context, query: str, source: TrackSource):
+        if "LOCAL:" in query:
+            raise NotImplemented("DB not supported yet.")
+
+        playlist = await cls.search_playlist(query, source)
+        if not playlist:
+            return None
+
+        name = playlist.data["playlistInfo"]["name"]
+        tracks = []
+        for track_data in playlist.data['tracks']:
+            track = TTrack(track_data, ctx)
+            track.source = source
+            tracks.append(track)
+
+        return cls({
+            "name": name,
+            "tracks": tracks,
+            "source": source
+        })
 
 
 class Query:
