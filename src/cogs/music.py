@@ -470,9 +470,9 @@ class MusicCog(commands.Cog, name='Music'):
                 color=EMBED_COLOR
             ))
             vc.queue.reset()
+            await vc.pool.close()
             await vc.disconnect()
             await vc.destroy()
-            await vc.pool.close()
         else:
             await ctx.send(embed=discord.Embed(
                 title="You're not connected to any VC",
