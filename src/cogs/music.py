@@ -863,6 +863,33 @@ class MusicCog(commands.Cog, name='Music'):
             embed.insert_field_at(0, name="Current", value=f"[{current.title}]({current.uri})", inline=False)
         return await ctx.send(embed=embed)
 
+    @commands.group("playlist", aliases=['pl'])
+    async def _playlist(self, ctx: Context, *, query: str):
+        if not ctx.guild.voice_client:
+            await ctx.invoke(self._join)
+
+        player: TPlayer = ctx.guild.voice_client
+        if not player:
+            return
+
+        async with ctx.typing():
+            playlist = await Query().parse_query(ctx, query)
+            if playlist is None:
+                return await ctx.send("Nothing found.")
+            elif isinstance(playlist, TTrack):
+                return await ctx.send("Looks like you wanted to play a single track. Try `'play` command.")
+            else:
+                name = playlist.name
+                for track in playlist.tracks:
+                    await player.queue.put_wait(track)
+                await ctx.message.add_reaction(MusicEmojis.ADDED)
+                await ctx.send(embed=discord.Embed(
+                    title="Added a playlist!",
+                    description=f"**[{name}]({query})**" if query.startswith("https://") else f"**{name}**",
+                    color=EMBED_COLOR
+                ))
+        await player.start_player()
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MusicCog(bot))
