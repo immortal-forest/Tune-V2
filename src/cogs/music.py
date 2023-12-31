@@ -82,7 +82,7 @@ class TPlayer(Player):
             for track_ in recos:
                 if track_ in queues:
                     continue
-                await self.auto_queue.put_wait(await TTrack.from_track(ctx, track_.data))
+                await self.auto_queue.put_wait(TTrack(track_.data, ctx))
             self.auto_queue.shuffle()
 
             ctx.bot.dispatch("populate_done", message=self.populate_message)
