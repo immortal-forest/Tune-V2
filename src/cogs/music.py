@@ -492,25 +492,20 @@ class MusicCog(commands.Cog, name='Music'):
         async with ctx.typing():
             tracks = await Query().parse_query(ctx, query)
             if isinstance(tracks, list):
-                for track in tracks:
-                    await player.queue.put_wait(track)
-                desc = f"**Playlist {len(tracks)}**"  # TODO: playlist name from TPlaylistTrack
-                _populate = False
+                return await ctx.send("Looks like you wanted to play a playlist. Try `'pl` command.")
             elif isinstance(tracks, TTrack):
                 await player.queue.put_wait(tracks)
-                desc = f"**[{tracks.title}]({tracks.uri})**"
-                _populate = True
             else:
-                return
+                return await ctx.send("Nothing found.")
 
             await ctx.message.add_reaction(MusicEmojis.ADDED)
             await ctx.send(embed=discord.Embed(
                 title="Enqueued a track!",
-                description=desc,
+                description=f"**[{tracks.title}]({tracks.uri})**",
                 color=EMBED_COLOR
             ))
 
-            await player.populate_auto_queue(ctx, tracks if _populate else None)
+            await player.populate_auto_queue(ctx, tracks)
         await player.start_player()
         return
 
