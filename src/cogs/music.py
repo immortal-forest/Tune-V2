@@ -263,7 +263,18 @@ class Query:
         else:
             return TrackSource.Unknown
 
-    async def parse_query(self, ctx, query: str) -> TTrack | list[TTrack] | None:
+    @staticmethod
+    def playlist_source(query: str) -> TrackSource:
+        if "youtube" in query or "youtu.be" in query or "list" in query:
+            return TrackSource.YouTube
+        elif "soundcloud" in query or "sets" in query:
+            return TrackSource.SoundCloud
+        elif "LOCAL:" in query:  # will be added to the query by db related commands
+            return TrackSource.Local
+        else:
+            return TrackSource.Unknown
+
+    async def parse_query(self, ctx, query: str) -> TTrack | TPlaylist | None:
         query = re.sub(r'[<>]', '', query)
         check = yarl.URL(query)
         # YouTube or SoundCloud Playlist
@@ -291,9 +302,16 @@ class Query:
 
         return track
 
-    async def parse_playlist(self, ctx, query: str) -> list[TTrack] | None:
-        await ctx.send("Not supported.")  # TODO: playlist play command
-        return None
+    async def parse_playlist(self, ctx, query: str) -> TPlaylist | None:
+        source = self.playlist_source(query)
+        if source == TrackSource.Unknown:
+            return None
+
+        playlist = await TPlaylist.create_playlist(ctx, query, source)
+        if playlist is None:
+            return None
+
+        return playlist
 
 
 class MusicEmojis:
