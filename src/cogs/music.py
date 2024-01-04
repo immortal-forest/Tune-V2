@@ -35,6 +35,7 @@ class TPlayer(Player):
         self.autoplay = True
         self.populate = False
         self.pool: asyncpg.Pool = None
+        self.glob: dict = {}
 
     async def destroy(self):
         if self.is_connected():
@@ -85,7 +86,7 @@ class TPlayer(Player):
                 await self.auto_queue.put_wait(TTrack(track_.data, ctx))
             self.auto_queue.shuffle()
 
-            ctx.bot.dispatch("populate_done", message=self.populate_message)
+            ctx.bot.dispatch("populate_done", ctx=ctx)
 
     async def start_player(self):
         if not self.is_playing() and not self.is_paused():
@@ -400,16 +401,27 @@ class MusicCog(commands.Cog, name='Music'):
 
     @commands.Cog.listener()
     async def on_populate(self, ctx: Context, playlist_name: str, playlist_url: str):
-        logger.info(f"Populating: {playlist_url}")
+        logger.info(f"Guild:<{ctx.guild.id}>  populating: {playlist_url}")
         player: TPlayer = ctx.guild.voice_client
-        player.populate_message = await ctx.send(embed=discord.Embed(
+        if player is None:
+            return
+        message = await ctx.send(embed=discord.Embed(
             title="Populating auto-queue",
             description=f"**[{playlist_name}]({playlist_url})**",
             color=EMBED_COLOR
         ).set_footer(text="Note: Queue takes precedence over Auto-Queue"))
+        player.glob["populate_message"] = message
 
     @commands.Cog.listener()
-    async def on_populate_done(self, message: Message):
+    async def on_populate_done(self, ctx: Context):
+        player: TPlayer = ctx.guild.voice_client
+        # on_populate takes more time
+        # causing `player.glob['populate_message']` to raise KeyError
+        # so wait few seconds for it to complete
+        await asyncio.sleep(2.69)
+        if player is None:
+            return
+        message = player.glob['populate_message']
         await message.add_reaction(MusicEmojis.DONE)
 
     async def cog_check(self, ctx: Context[BotT]) -> bool:
