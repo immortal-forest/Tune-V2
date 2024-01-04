@@ -525,7 +525,7 @@ class MusicCog(commands.Cog, name='Music'):
             await message.add_reaction(rxn)
 
         try:
-            reaction, _ = await self.bot.wait_for("reaction_add", timeout=60.0, check=_check_reaction)
+            reaction, _ = await self.bot.wait_for("reaction_add", timeout=120.0, check=_check_reaction)
         except asyncio.Timeout:
             await ctx.send("Reaction timed out!", delete_after=5)
             await message.clear_reactions()
