@@ -89,8 +89,8 @@ class TPlayer(Player):
 
     async def start_player(self):
         if not self.is_playing() and not self.is_paused():
-            _track: TTrack = self.queue.get()
-            await self.play(_track, populate=self.populate)
+            _track: TTrack = await self.queue.get_wait()
+            await self.play(_track)
 
     async def player_pool(self):
         try:
@@ -100,7 +100,7 @@ class TPlayer(Player):
                     f"guild_{self.guild.id}"
                 )
         except asyncpg.PostgresError:
-            pass
+            self.pool = None
         finally:
             return self.pool
 
@@ -470,7 +470,10 @@ class MusicCog(commands.Cog, name='Music'):
                 color=EMBED_COLOR
             ))
             vc.queue.reset()
-            await vc.pool.close()
+            try:
+                await vc.pool.close()
+            except Exception as e:
+                logger.error(e)
             await vc.disconnect()
             await vc.destroy()
         else:
@@ -529,7 +532,7 @@ class MusicCog(commands.Cog, name='Music'):
         else:
             track = tracks[:size][MusicUtils.SEARCH_OPTIONS[reaction.emoji]]
             await message.clear_reactions()
-            await player.queue.put_wait(await TTrack.from_track(ctx, track.data))
+            await player.queue.put_wait(TTrack(track.data, ctx))
             await ctx.send(embed=discord.Embed(
                 title="Enqueued a track!",
                 description=f"**[{track.title}]({track.uri})**",
