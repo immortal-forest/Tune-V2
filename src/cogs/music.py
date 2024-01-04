@@ -422,11 +422,10 @@ class MusicCog(commands.Cog, name='Music'):
         await self.start_nodes()
 
     async def start_nodes(self):
-        host = os.environ['LL_HOST']
-        port = os.environ['LL_PORT']
+        uri = os.environ['LL_URI']
         password = os.environ['LL_PASSWORD']
         secure = bool(int(os.getenv("LL_SECURE", False)))  # number: 0 or 1
-        node = Node(uri=f'http://{host}:{port}', password=password, secure=secure)
+        node = Node(uri=uri, password=password, secure=secure)
         await NodePool.connect(client=self.bot, nodes=[node])
 
     def get_player(self, idf: Union[Context, Guild]) -> TPlayer | None:
