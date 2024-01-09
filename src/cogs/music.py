@@ -386,9 +386,12 @@ class MusicCog(commands.Cog, name='Music'):
                 vc: TPlayer = self.get_player(member.guild)
                 if not vc:
                     return
+                try:
+                    await vc.pool.close()
+                except Exception as e:
+                    logger.error(e)
                 await vc.disconnect()
                 await vc.destroy()
-                await vc.pool.close()
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: Node):
