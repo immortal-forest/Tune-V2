@@ -18,7 +18,7 @@ async def create_pool(dsn, dbname: str):
             )
             await _conn.close()
         except Exception as e:
-            log.error(f"Error while creating a database: {e}")
+            log.error(f"Error while creating a database {dbname}: {e}")
             raise asyncpg.PostgresError("Error creating database")
 
     try:
@@ -27,6 +27,7 @@ async def create_pool(dsn, dbname: str):
             await connection.execute(
                 sql.CREATE_PLAYLISTS
             )
+        log.info(f"Connected to Database: {dbname}")
         return pool
     except Exception as e:
         log.error(f"Error creating a pool: {e}")
